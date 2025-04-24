@@ -400,9 +400,9 @@ def parse_args():
                             "Manage patch series in Patchwork and create PR")
     ap.add_argument('-c', '--config', default='./config.json',
                     help='Configuration file to use')
-    ap.add_argument("-b", "--branch", default="workflow",
+    ap.add_argument("-b", "--branch", default="master",
                     help="Name of branch in base_repo where the PR is pushed. "
-                         "Use <BRANCH> format. i.e. workflow")
+                         "Use <BRANCH> format. i.e. master")
     ap.add_argument('-s', '--src-dir', required=True,
                     help='Source directory')
     ap.add_argument('-d', '--dry-run', action='store_true', default=False,

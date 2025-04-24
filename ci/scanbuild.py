@@ -83,15 +83,6 @@ class ScanBuild(Base):
                             None, self.ci_data.config['dry_run'])
             self.add_failure_end_test("Setup failed")
 
-        # Checkout the source to the base where it has no patches applied
-        if self.ci_data.src_repo.git_checkout("origin/workflow"):
-            self.log_err("Failed to checkout to base branch")
-            submit_pw_check(self.ci_data.pw, self.ci_data.patch_1,
-                            self.name, Verdict.FAIL,
-                            "Setup failed",
-                            None, self.ci_data.config['dry_run'])
-            self.add_failure_end_test("Setup failed")
-
         # Run scan build with base, and save the error log
         base_err_file = self.scan_build("scan_build_base.err")
 

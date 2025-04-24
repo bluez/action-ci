@@ -19,7 +19,7 @@ inputs:
     default: 'master'
   workflow:
     description: The name of branch where workflow items are checked in
-    default: 'workflow'
+    default: 'master'
   space:
     description: Target space of the repo [user, kernel]
     default: 'kernel'

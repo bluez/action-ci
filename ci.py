@@ -43,9 +43,9 @@ def parse_args():
     ap = argparse.ArgumentParser(description="Run CI tests")
     ap.add_argument('-c', '--config', default='./config.json',
                     help='Configuration file to use. default=./config.json')
-    ap.add_argument('-b', '--branch', default='workflow',
+    ap.add_argument('-b', '--branch', default='master',
                     help='Name of branch in base_repo where the PR is pushed. '
-                         'Use <BRANCH> format. default: workflow')
+                         'Use <BRANCH> format. default: master')
     ap.add_argument('-z', '--bluez-dir', required=True,
                     help='BlueZ source directory.')
     ap.add_argument('-e', '--ell-dir', required=True,

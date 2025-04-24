@@ -47,11 +47,6 @@ class IncrementalBuild(Base):
             self.log_err(f"Invalid setup: space: {self.space}")
             self.add_failure_end_test("Invalid setup")
 
-        # Make the source base to workflow branch
-        if self.ci_data.src_repo.git_checkout("origin/workflow"):
-            self.log_err(f"Failed to checkout: {self.ci_data.src_repo.stderr}")
-            self.add_failure_end_test(self.ci_data.src_repo.stderr)
-
         # Get patches from patchwork series
         for patch in self.ci_data.series['patches']:
             self.log_dbg(f"Patch ID: {patch['id']}")
