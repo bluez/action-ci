@@ -80,6 +80,8 @@ PW Link:{pw_link}
 
 {content}
 
+{test_log_link}
+
 ---
 Regards,
 Linux Bluetooth
@@ -122,9 +124,11 @@ def get_receivers(email_config, submitter):
 def send_email(ci_data, content):
     headers = {}
     email_config = ci_data.config['email']
+    pr = ci_data.gh.get_pr(ci_data.config['pr_num'], force=True)
 
     body = EMAIL_MESSAGE.format(pw_link=ci_data.series['web_url'],
-                                content=content)
+                                content=content,
+                                test_log_link=f"{pr.html_url}/checks")
 
     headers['In-Reply-To'] = ci_data.patch_1['msgid']
     headers['References'] = ci_data.patch_1['msgid']
