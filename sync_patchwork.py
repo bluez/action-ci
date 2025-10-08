@@ -410,7 +410,7 @@ def parse_args():
     ap.add_argument('-p', '--disable-pr', action='store_true', default=False,
                     help='Disable creating pull request')
 
-    # Positional paramter
+    # Positional parameter
     ap.add_argument('space', choices=['user', 'kernel'],
                     help="user or kernel space")
     ap.add_argument("repo",

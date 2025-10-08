@@ -9,7 +9,7 @@ from ci import Base, Verdict, EndTest, submit_pw_check
 
 class TestRunner(Base):
     """Test Runner class
-    This class runs the test-runner with the test targer
+    This class runs the test-runner with the test target
     """
     def __init__(self, ci_data, test_name, bluez_src_dir):
 

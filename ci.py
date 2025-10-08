@@ -206,7 +206,7 @@ def create_test_list_user(ci_data):
     # Check Smatch
     test_list.append(ci.CheckSmatch(ci_data, "user", tool_dir="/smatch"))
 
-    # Make with Exteranl ELL
+    # Make with External ELL
     test_list.append(ci.MakeExtEll(ci_data))
 
     # Incremental Build
