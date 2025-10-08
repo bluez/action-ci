@@ -16,14 +16,14 @@ class MakeExtEll(GenericBuild):
 
     def __init__(self, ci_data):
         # To use exteranl ell, use the following config params
-        # config: --enable-external-ell --disable-lsan --disable-asan --disable-ubsan --disable-android
+        # config: --enable-external-ell --disable-lsan --disable-asan --disable-ubsan
 
         # Common
         self.name = "bluezmakeextell"
         self.desc = "Build Bluez with External ELL"
         self.ci_data = ci_data
 
-        config_params = ["--enable-external-ell", "--disable-lsan", "--disable-asan", "--disable-ubsan", "--disable-android"]
+        config_params = ["--enable-external-ell", "--disable-lsan", "--disable-asan", "--disable-ubsan"]
         super().__init__(config_params=config_params, work_dir=ci_data.src_dir)
 
         self.log_dbg("Initialization completed")

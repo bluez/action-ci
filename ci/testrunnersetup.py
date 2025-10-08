@@ -25,8 +25,7 @@ class TestRunnerSetup(Base):
             self.tester_config = "/tester.config"
 
         # BlueZ build object
-        _params = ["--disable-lsan", "--disable-asan", "--disable-ubsan",
-                   "--disable-android"]
+        _params = ["--disable-lsan", "--disable-asan", "--disable-ubsan"]
         self.bluez_build = BuildBluez(ci_data, config_params=_params,
                                       src_dir=self.bluez_src_dir,
                                       dry_run=True)

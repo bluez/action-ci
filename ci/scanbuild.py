@@ -29,7 +29,7 @@ class ScanBuild(Base):
 
         # Configure the build for base
         cmd = ["./bootstrap-configure", "--disable-asan", "--disable-lsan",
-               "--disable-ubsan", "--disable-android"]
+               "--disable-ubsan"]
         (ret, stdout, stderr) = cmd_run(cmd, cwd=self.ci_data.src_dir)
         if ret:
             self.log_err("Build config failed")

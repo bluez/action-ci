@@ -27,10 +27,8 @@ class IncrementalBuild(Base):
             self.target = BuildKernel(self.ci_data, kernel_config=kernel_config,
                                       dry_run=True)
         elif self.space == "user":
-            _params = ["--disable-android"]
             # Set the dry_run=True so it won't submit the result to the pw.
-            self.target = BuildBluez(self.ci_data, config_params=_params,
-                                     dry_run=True)
+            self.target = BuildBluez(self.ci_data, dry_run=True)
         else:
             self.target = None
 
