@@ -75,7 +75,8 @@ class TestRunner(Base):
         failed_tc = []
 
         # verdict result
-        for line in stdout_clean.splitlines():
+        lines = stdout_clean.splitlines()
+        for lineno, line in enumerate(lines):
             if re.search(r"^Total: ", line):
                 self.test_summary = line
 
@@ -113,7 +114,14 @@ class TestRunner(Base):
 
             if re.search(r"^(BUG:|WARNING:|general protection fault|Kernel panic)", line):
                 bug = line
-                self.add_failure(line)
+                splat = lines[lineno:lineno+40]
+                for j, splatline in enumerate(splat):
+                    if '</TASK>' in splatline or '---[ end trace' in splatline:
+                        splat = splat[:j]
+                        break
+                else:
+                    splat = splat + ["..."]
+                self.add_failure("\n".join(splat))
 
             if re.search(r"^Test Summary", line):
                 self.log_dbg("Start to check fail in the line")
