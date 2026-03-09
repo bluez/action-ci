@@ -44,7 +44,8 @@
             "ioctl-tester",
             "mesh-tester",
             "smp-tester",
-            "userchan-tester"
+            "userchan-tester",
+            "6lowpan-tester"
           ]
         }
       }
