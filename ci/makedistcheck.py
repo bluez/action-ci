@@ -14,7 +14,7 @@ class MakeDistcheck(GenericBuild):
 
     def __init__(self, ci_data):
         # For dist check, use the following config params
-        # config: --disable-lsan --disable-asan --disable-ubsan --disable-android
+        # config: --disable-lsan --disable-asan --disable-ubsan
         # For make, use fakeroot
 
         # Common
@@ -22,8 +22,7 @@ class MakeDistcheck(GenericBuild):
         self.desc = "Run Bluez Make Distcheck"
         self.ci_data = ci_data
 
-        config_params = ["--disable-lsan", "--disable-asan", "--disable-ubsan",
-                         "--disable-android"]
+        config_params = ["--disable-lsan", "--disable-asan", "--disable-ubsan"]
         make_params = ["distcheck"]
         super().__init__(config_params=config_params, make_params=make_params,
                          use_fakeroot=True, work_dir=ci_data.src_dir)

@@ -10,20 +10,20 @@ from ci import GenericBuild
 
 class MakeExtEll(GenericBuild):
     """BlueZ Make with External ELL class
-    This class builds the BlueZ with exteranl ell option. It assumes that the
+    This class builds the BlueZ with external ell option. It assumes that the
     ELL is already installed on the system
     """
 
     def __init__(self, ci_data):
-        # To use exteranl ell, use the following config params
-        # config: --enable-external-ell --disable-lsan --disable-asan --disable-ubsan --disable-android
+        # To use external ell, use the following config params
+        # config: --enable-external-ell --disable-lsan --disable-asan --disable-ubsan
 
         # Common
         self.name = "bluezmakeextell"
         self.desc = "Build Bluez with External ELL"
         self.ci_data = ci_data
 
-        config_params = ["--enable-external-ell", "--disable-lsan", "--disable-asan", "--disable-ubsan", "--disable-android"]
+        config_params = ["--enable-external-ell", "--disable-lsan", "--disable-asan", "--disable-ubsan"]
         super().__init__(config_params=config_params, work_dir=ci_data.src_dir)
 
         self.log_dbg("Initialization completed")

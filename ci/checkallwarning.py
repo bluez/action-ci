@@ -107,7 +107,7 @@ class CheckAllWarning(GenericKernelBuild):
         super().post_run()
 
     def parse_output(self, output):
-        """Read output log and creates the dict whcih has key with file path
+        """Read output log and creates the dict which has key with file path
         and the value is the output log in list
         """
 

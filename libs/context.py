@@ -53,7 +53,7 @@ class Context():
             raise ContextError
 
         # Init email
-        log_info("Initailze EmailTool")
+        log_info("Initialize EmailTool")
         token = None
         if 'EMAIL_TOKEN' in os.environ:
             token = os.environ['EMAIL_TOKEN']
@@ -71,7 +71,7 @@ class Context():
         self.src_dir = self.src_repo.path()
         self.patch_root = patch_root
 
-        # Custome confguration
+        # Custom configuration
         for kw in kwargs:
             log_info(f"Storing {kw}:{kwargs[kw]}")
             self.config[kw] = kwargs[kw]

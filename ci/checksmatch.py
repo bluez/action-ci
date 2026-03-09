@@ -50,8 +50,7 @@ class CheckSmatch(Base):
             self.target = BuildKernel(self.ci_data, kernel_config=kernel_config,
                                       make_params=make_params, dry_run=True)
         elif self.space == "user":
-            config_params = ["--disable-asan", "--disable-lsan",
-                             "--disable-ubsan", "--disable-android"]
+            config_params = ["--disable-asan", "--disable-lsan", "--disable-ubsan"]
             make_params.append(f"CHECK={self.tool_dir}/smatch --full-path")
             make_params.append(f"CC={self.tool_dir}/cgcc")
             # Set the dry_run=True so it won't submit the result to the pw
@@ -140,7 +139,7 @@ class CheckSmatch(Base):
         self.target.post_run()
 
     def parse_output(self, output):
-        """Read output log and creates the dict whcih has key with file path
+        """Read output log and creates the dict which has key with file path
         and the value is the output log in list
         """
 

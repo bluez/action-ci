@@ -93,7 +93,7 @@ class BuildKernel32(GenericKernelBuild):
 
     def create_config32(self, orig_config):
         """Create config file for 32bit build
-        This is a custome step and assume that the orig config file is used
+        This is a custom step and assume that the orig config file is used
         for 64bit. This function createst new config file with CONFIG_64BIT=n
         flag and return it.
         """

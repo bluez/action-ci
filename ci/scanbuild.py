@@ -29,7 +29,7 @@ class ScanBuild(Base):
 
         # Configure the build for base
         cmd = ["./bootstrap-configure", "--disable-asan", "--disable-lsan",
-               "--disable-ubsan", "--disable-android"]
+               "--disable-ubsan"]
         (ret, stdout, stderr) = cmd_run(cmd, cwd=self.ci_data.src_dir)
         if ret:
             self.log_err("Build config failed")
@@ -102,13 +102,13 @@ class ScanBuild(Base):
         results = self.compare_outputs(base_err_file, patched_err_file)
         if results:
             # Add warning...
-            self.log_dbg("Found differnece in two build scans: " + results)
+            self.log_dbg("Found difference in two build scans: " + results)
             submit_pw_check(self.ci_data.pw, self.ci_data.patch_1,
                             self.name, Verdict.WARNING,
                             "ScanBuild: " + results,
                             None, self.ci_data.config['dry_run'])
             self.warning(results)
-            # warning() doens't raise the exception.
+            # warning() doesn't raise the exception.
             raise EndTest
 
         submit_pw_check(self.ci_data.pw, self.ci_data.patch_1,

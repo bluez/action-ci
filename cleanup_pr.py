@@ -183,7 +183,7 @@ def update_pull_request(gh, pr, days_created, magic_line):
     if days_created >= 7 and days_created < 14:
         log_debug("7 <= Days created < 14")
         if magic_line == MAGIC_LINE_2 or magic_line == MAGIC_LINE_3:
-            log_debug(f"Found bot commnet and skip for now: {magic_line}")
+            log_debug(f"Found bot comment and skip for now: {magic_line}")
         else:
             if magic_line == MAGIC_LINE:
                 log_debug("Found 1st comment. Adding the 2nd comment")
@@ -214,11 +214,11 @@ def manage_pr(gh):
             log_info(f"PR is created with Patchwork SID: {pw_sid}")
             continue
 
-        # Calcuate the number of days since PR was created
+        # Calculate the number of days since PR was created
         delta = datetime.now() - pr.created_at
         days_created = delta.days
 
-        log_debug(f"PR opended {days_created} days ago")
+        log_debug(f"PR opened {days_created} days ago")
 
         magic_line = get_latest_comment(gh, pr)
 
@@ -231,7 +231,7 @@ def parse_args():
     ap = argparse.ArgumentParser(description="Clean up PR")
     ap.add_argument('-d', '--dry-run', action='store_true', default=False,
                     help='Run it without updating the PR')
-    # Positional paramter
+    # Positional parameter
     ap.add_argument("repo",
                     help="Name of Github repository. i.e. bluez/bluez")
     return ap.parse_args()
