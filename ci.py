@@ -128,7 +128,7 @@ def send_email(ci_data, content):
 
     body = EMAIL_MESSAGE.format(pw_link=ci_data.series['web_url'],
                                 content=content,
-                                test_log_link=f"{pr.html_url}/checks")
+                                test_log_link=f"{pr.html_url}")
 
     headers['In-Reply-To'] = ci_data.patch_1['msgid']
     headers['References'] = ci_data.patch_1['msgid']
