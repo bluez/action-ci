@@ -62,7 +62,7 @@ class GitLint(Base):
 
     def _gitlint(self, patch):
         patch_msg = self.ci_data.pw.save_patch_msg(patch['id'],
-                            os.path.join(self.ci_data.patch_dir,
+                            os.path.join(self.ci_data.patch_root,
                                          f"{patch['id']}.msg"))
         self.log_dbg(f"Patch msg: {patch_msg}")
         cmd = ['gitlint', '-C', self.gitlint_config, '--msg-filename', patch_msg]

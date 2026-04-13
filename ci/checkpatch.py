@@ -84,7 +84,7 @@ class CheckPatch(Base):
             cmd.append(self.ignore)
 
         patch_file = self.ci_data.pw.save_patch_mbox(patch['id'],
-                            os.path.join(self.ci_data.patch_dir,
+                            os.path.join(self.ci_data.patch_root,
                                          f"{patch['id']}.patch"))
         self.log_dbg(f"Patch file: {patch_file}")
         cmd.append(patch_file)
