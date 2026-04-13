@@ -1,6 +1,21 @@
 # Action.yml
 name: 'bzcafe'
 description: 'BlueZ CI Automation Framework'
+# NOTE for consuming workflows:
+# 1. The CI task creates individual GitHub Check Runs per test. The consuming
+#    workflow must grant 'checks: write' permission to GITHUB_TOKEN:
+#
+#    permissions:
+#      checks: write
+#      pull-requests: write
+#
+# 2. To allow retriggering CI by reopening a PR, ensure the pull_request
+#    trigger includes the 'reopened' type (included by default):
+#
+#    on:
+#      pull_request:
+#        types: [opened, synchronize, reopened]
+#
 inputs:
   task:
     description: Name of task to perform. [sync, patchwork, ci, cleanup]

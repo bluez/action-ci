@@ -9,6 +9,16 @@ from libs import Context
 
 import ci
 
+# Map CI Verdict to GitHub Check Run conclusion
+VERDICT_TO_CONCLUSION = {
+    ci.Verdict.PASS: 'success',
+    ci.Verdict.FAIL: 'failure',
+    ci.Verdict.ERROR: 'failure',
+    ci.Verdict.SKIP: 'skipped',
+    ci.Verdict.WARNING: 'neutral',
+    ci.Verdict.PENDING: 'neutral',
+}
+
 def check_args(args):
 
     if not os.path.exists(os.path.abspath(args.config)):
@@ -101,6 +111,23 @@ def github_pr_post_result(ci_data, test):
         comment += f"Output:\n```\n{test.output}\n```"
 
     return ci_data.gh.pr_post_comment(pr, comment)
+
+def github_update_check_run(ci_data, check_run, test):
+    """Update a GitHub Check Run with the test result."""
+
+    if not check_run:
+        return False
+
+    conclusion = VERDICT_TO_CONCLUSION.get(test.verdict, 'neutral')
+    title = f"{test.name} - {test.verdict.name}"
+    summary = f"**{test.desc}**\n\nDuration: {test.elapsed():.2f} seconds"
+
+    text = None
+    if test.output:
+        text = f"```\n{test.output}\n```"
+
+    return ci_data.gh.update_check_run(check_run, conclusion, title, summary,
+                                       text)
 
 def is_maintainers_only(email_config):
     if 'only-maintainers' in email_config and email_config['only-maintainers']:
@@ -291,7 +318,12 @@ def run_ci(ci_data):
     else:
         test_list = create_test_list_kernel(ci_data)
 
+    # Get the PR head SHA for creating check runs
+    pr = ci_data.gh.get_pr(ci_data.config['pr_num'], force=True)
+    head_sha = pr.head.sha
+
     log_info(f"Test list is created: {len(test_list)}")
+    log_info(f"PR head SHA for check runs: {head_sha}")
     log_debug("+--------------------------+")
     log_debug("|          Run CI          |")
     log_debug("+--------------------------+")
@@ -299,6 +331,12 @@ def run_ci(ci_data):
         log_info("##############################")
         log_info(f"## CI: {test.name}")
         log_info("##############################")
+
+        # Create a GitHub Check Run in 'in_progress' state
+        check_run = None
+        if not ci_data.config['dry_run']:
+            check_run = ci_data.gh.create_check_run(
+                test.name, head_sha, status='in_progress')
 
         try:
             test.run()
@@ -316,8 +354,13 @@ def run_ci(ci_data):
             log_info("Skip submitting result to Github: dry_run=True")
             continue
 
-        log_debug("Submit the result to github")
-        # AR: Submit the result to GH
+        # Update the GitHub Check Run with the result
+        log_debug("Update check run with result")
+        if not github_update_check_run(ci_data, check_run, test):
+            log_error("Failed to update check run on Github")
+
+        # Also post comment on PR for backward compatibility
+        log_debug("Submit the result to github PR comment")
         if not github_pr_post_result(ci_data, test):
             log_error("Failed to submit the result to Github")
 

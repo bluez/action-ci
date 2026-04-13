@@ -1,5 +1,8 @@
-from github import Github
+from datetime import datetime, timezone
+from github import Github, GithubException
 import re
+
+from libs.utils import log_debug, log_error, log_info
 
 class GithubTool:
 
@@ -65,3 +68,65 @@ class GithubTool:
 
     def pr_close(self, pr):
         pr.edit(state="closed")
+
+    def create_check_run(self, name, head_sha, status='queued',
+                         details_url=None):
+        """Create a new GitHub Check Run for a specific test.
+
+        Args:
+            name: Name of the check (e.g. 'CheckPatch', 'BuildKernel')
+            head_sha: The SHA of the commit to associate the check with
+            status: Initial status ('queued' or 'in_progress')
+            details_url: Optional URL for more details
+
+        Returns:
+            CheckRun object on success, None on failure
+        """
+        try:
+            kwargs = {
+                'status': status,
+                'started_at': datetime.now(timezone.utc),
+            }
+            if details_url:
+                kwargs['details_url'] = details_url
+            check_run = self._repo.create_check_run(name, head_sha, **kwargs)
+            log_debug(f"Created check run '{name}' (id={check_run.id})")
+            return check_run
+        except GithubException as e:
+            log_error(f"Failed to create check run '{name}': {e}")
+            return None
+
+    def update_check_run(self, check_run, conclusion, title, summary,
+                         text=None):
+        """Update a GitHub Check Run with the final result.
+
+        Args:
+            check_run: The CheckRun object to update
+            conclusion: One of 'success', 'failure', 'neutral', 'cancelled',
+                       'skipped', 'timed_out', 'action_required'
+            title: Short title for the check output
+            summary: Summary of the check result (markdown)
+            text: Optional detailed text output (markdown)
+
+        Returns:
+            True on success, False on failure
+        """
+        try:
+            output = {
+                'title': title,
+                'summary': summary,
+            }
+            if text:
+                output['text'] = text
+
+            check_run.edit(
+                status='completed',
+                conclusion=conclusion,
+                completed_at=datetime.now(timezone.utc),
+                output=output,
+            )
+            log_debug(f"Updated check run '{check_run.name}' -> {conclusion}")
+            return True
+        except GithubException as e:
+            log_error(f"Failed to update check run '{check_run.name}': {e}")
+            return False
