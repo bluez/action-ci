@@ -46,8 +46,14 @@ class Context():
             log_error("Set GITHUB_TOKEN environment variable")
             raise ContextError
 
+        # Use a separate token for Check Runs API (requires GitHub App token,
+        # not a PAT). Falls back to GITHUB_TOKEN if not set.
+        checks_token = os.environ.get('GITHUB_CHECKS_TOKEN',
+                                       os.environ['GITHUB_TOKEN'])
+
         try:
-            self.gh = GithubTool(github_repo, os.environ['GITHUB_TOKEN'])
+            self.gh = GithubTool(github_repo, os.environ['GITHUB_TOKEN'],
+                                 checks_token=checks_token)
         except:
             log_error("Failed to initialize GithubTool class")
             raise ContextError

@@ -52,8 +52,8 @@ function update_github_token {
         exit 1
     fi
     echo "Update repo origin with github token"
-    echo "$ git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/$1"
-    git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/$1"
+    echo "$ git remote set-url origin https://x-access-token:****@github.com/$1"
+    git remote set-url origin "https://x-access-token:$ACTION_TOKEN@github.com/$1"
 }
 
 # Clone ELL
@@ -78,10 +78,12 @@ function clone_bluez {
 
 # Check Github Token
 function check_github_token {
-    if [ -z "$GITHUB_TOKEN" ]; then
-        echo "Set GITHUB_TOKEN environment variable"
+    if [ -z "$ACTION_TOKEN" ]; then
+        echo "Set ACTION_TOKEN (github_token) environment variable"
         exit 1
     fi
+    # Export as GITHUB_TOKEN for backward compatibility with Python scripts
+    export GITHUB_TOKEN="$ACTION_TOKEN"
 }
 
 function check_patchwork_token {

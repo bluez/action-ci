@@ -6,10 +6,17 @@ from libs.utils import log_debug, log_error, log_info
 
 class GithubTool:
 
-    def __init__(self, repo, token=None):
+    def __init__(self, repo, token=None, checks_token=None):
         self._repo = Github(token).get_repo(repo)
         self._pr = None
         self._prs = None
+
+        # Use a separate Github client for Check Runs API which requires
+        # a GitHub App token (the Actions-provided GITHUB_TOKEN), not a PAT.
+        if checks_token and checks_token != token:
+            self._checks_repo = Github(checks_token).get_repo(repo)
+        else:
+            self._checks_repo = self._repo
 
     def get_pr_commits(self, pr_id):
         pr = self.get_pr(pr_id, True)
@@ -89,7 +96,8 @@ class GithubTool:
             }
             if details_url:
                 kwargs['details_url'] = details_url
-            check_run = self._repo.create_check_run(name, head_sha, **kwargs)
+            check_run = self._checks_repo.create_check_run(name, head_sha,
+                                                              **kwargs)
             log_debug(f"Created check run '{name}' (id={check_run.id})")
             return check_run
         except GithubException as e:

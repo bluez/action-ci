@@ -39,8 +39,13 @@ inputs:
     description: Target space of the repo [user, kernel]
     default: 'kernel'
   github_token:
-    description: Github token
+    description: Github token (PAT for PR comments, patchwork, etc.)
     default: ''
+  github_checks_token:
+    description: >
+      GitHub token for creating Check Runs. Must be the Actions-provided
+      GITHUB_TOKEN (not a PAT). Defaults to the automatic github.token.
+    default: ${{ github.token }}
   email_token:
     description: Email token
     default: ''
@@ -54,7 +59,8 @@ runs:
   using: 'docker'
   image: 'Dockerfile'
   env:
-    GITHUB_TOKEN: ${{ inputs.github_token }}
+    ACTION_TOKEN: ${{ inputs.github_token }}
+    GITHUB_CHECKS_TOKEN: ${{ inputs.github_checks_token }}
     EMAIL_TOKEN: ${{ inputs.email_token }}
     PATCHWORK_TOKEN: ${{ inputs.patchwork_token }}
     PATCHWORK_USER: ${{ inputs.patchwork_user }}
