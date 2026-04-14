@@ -45,6 +45,14 @@ class IncrementalBuild(Base):
             self.log_err(f"Invalid setup: space: {self.space}")
             self.add_failure_end_test("Invalid setup")
 
+        # Reset source tree to the base commit (before the PR patches) so
+        # patches can be applied one-by-one for incremental building.
+        num_patches = len(self.ci_data.series['patches'])
+        self.log_info(f"Resetting source to HEAD~{num_patches} (base commit)")
+        if self.ci_data.src_repo.git_reset(f'HEAD~{num_patches}', hard=True):
+            self.log_err("Failed to reset to base commit")
+            self.add_failure_end_test("Failed to reset to base commit")
+
         # Get patches from patchwork series
         for patch in self.ci_data.series['patches']:
             self.log_dbg(f"Patch ID: {patch['id']}")
@@ -58,7 +66,8 @@ class IncrementalBuild(Base):
             # Apply patch
             if self.ci_data.src_repo.git_am(patch_file):
                 self.log_err("Failed to apply patch")
-                self.log_info("Cleaning git tree and retrying")
+                self.log_info("Aborting failed git-am and retrying")
+                self.ci_data.src_repo.git_am(abort=True)
                 self.ci_data.src_repo.git_clean()
                 if self.ci_data.src_repo.git_am(patch_file):
                     self.log_err("Failed to apply patch. Giving up")
