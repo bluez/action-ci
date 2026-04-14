@@ -1,16 +1,16 @@
-from ctypes import util
 import os
+import shutil
 import sys
 
 sys.path.insert(0, '../libs')
-from libs import RepoTool, cmd_run
+from libs import cmd_run
 
 from ci import Base, Verdict, EndTest, submit_pw_check
-from ci import BuildKernel, BuildBluez
 
 class IncrementalBuild(Base):
     """Incremental Build class
-    This class build the targe after applying the each patch in the series
+    This class builds the target after applying each patch in the series
+    one-by-one, running an incremental make after each patch.
     """
 
     def __init__(self, ci_data, space, kernel_config=None):
@@ -22,28 +22,58 @@ class IncrementalBuild(Base):
         self.space = space
         self.ci_data = ci_data
 
-        if self.space == "kernel":
-            # Set the dry_run=True so it won't submit the result to the pw.
-            self.target = BuildKernel(self.ci_data, kernel_config=kernel_config,
-                                      dry_run=True)
-        elif self.space == "user":
-            # Set the dry_run=True so it won't submit the result to the pw.
-            self.target = BuildBluez(self.ci_data, dry_run=True)
-        else:
-            self.target = None
+        if self.space not in ("kernel", "user"):
+            raise ValueError(f"Invalid space: {self.space}")
+
+        # For kernel builds, default to the standard config if not provided
+        if self.space == "kernel" and not self.kernel_config:
+            self.kernel_config = '/bluetooth_build.config'
 
         super().__init__()
 
         self.log_dbg("Initialization completed")
 
+    def _initial_setup(self):
+        """Run the initial build configuration once before the patch loop."""
+
+        if self.space == "user":
+            # Run bootstrap-configure once
+            cmd = ["./bootstrap-configure"]
+            (ret, stdout, stderr) = cmd_run(cmd, cwd=self.ci_data.src_dir)
+            if ret:
+                self.log_err("Failed to run bootstrap-configure")
+                self.add_failure_end_test(stderr)
+        elif self.space == "kernel":
+            # Copy kernel config and run olddefconfig once
+            self.log_info(f"Copying kernel config: {self.kernel_config}")
+            shutil.copy(self.kernel_config,
+                        os.path.join(self.ci_data.src_dir, ".config"))
+            cmd = ["make", "olddefconfig"]
+            (ret, stdout, stderr) = cmd_run(cmd, cwd=self.ci_data.src_dir)
+            if ret:
+                self.log_err("Failed to run make olddefconfig")
+                self.add_failure_end_test(stderr)
+
+    def _incremental_make(self):
+        """Run make without reconfiguring - truly incremental."""
+
+        cmd = ["make", "-j4"]
+        if self.space == "kernel":
+            # Kernel simple build: only Bluetooth sources
+            cmd.append('net/bluetooth/')
+            cmd.append('drivers/bluetooth/')
+
+        (ret, stdout, stderr) = cmd_run(cmd, cwd=self.ci_data.src_dir)
+        if ret:
+            self.log_err("Incremental make failed")
+            self.add_failure(stderr)
+            return False
+        return True
+
     def run(self):
         self.log_dbg("Run")
 
         self.start_timer()
-
-        if not self.target:
-            self.log_err(f"Invalid setup: space: {self.space}")
-            self.add_failure_end_test("Invalid setup")
 
         # Reset source tree to the base commit (before the PR patches) so
         # patches can be applied one-by-one for incremental building.
@@ -52,6 +82,9 @@ class IncrementalBuild(Base):
         if self.ci_data.src_repo.git_reset(f'HEAD~{num_patches}', hard=True):
             self.log_err("Failed to reset to base commit")
             self.add_failure_end_test("Failed to reset to base commit")
+
+        # Run initial configure/config setup once before the patch loop
+        self._initial_setup()
 
         # Get patches from patchwork series
         for patch in self.ci_data.series['patches']:
@@ -75,18 +108,9 @@ class IncrementalBuild(Base):
                     self.ci_data.src_repo.git_am(abort=True)
                     self.add_failure_end_test(msg)
 
-            # Test Build
-            try:
-                self.target.run()
-            except EndTest as e:
-                self.log_err("Build failed")
-            finally:
-                self.log_info(f"Test Verdict: {self.target.verdict.name}")
-
-            # Update the verdict from self.target to this object
-            if self.target.verdict == Verdict.FAIL:
-                # submit error log pw
-                msg = f"{patch['name']}\n{self.target.output}"
+            # Incremental build - just run make, no reconfigure/clean
+            if not self._incremental_make():
+                msg = f"{patch['name']}\n{self.output}"
                 submit_pw_check(self.ci_data.pw, patch,
                                 self.name, Verdict.FAIL,
                                 msg,
