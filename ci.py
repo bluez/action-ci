@@ -400,9 +400,11 @@ def main():
 
     # Setup Source for the test that needs to access the base like incremental
     # build.
-    # It needs to fetch the extra patches: # of commit in PR + 1
+    # Deepen the shallow clone so HEAD~N is reachable (N = number of commits
+    # in the PR). Using --deepen instead of --depth ensures we extend the
+    # existing shallow history rather than re-fetching.
     pr = ci_data.gh.get_pr(args.pr_num, force=True)
-    cmd = ['fetch', f'--depth={pr.commits+1}']
+    cmd = ['fetch', f'--deepen={pr.commits+1}']
     if ci_data.src_repo.git(cmd):
         log_error("Failed to fetch commits in the patches")
         sys.exit(1)
