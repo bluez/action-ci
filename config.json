@@ -46,7 +46,121 @@
             "smp-tester",
             "userchan-tester",
             "6lowpan-tester"
-          ]
+          ],
+          "file-mapping": {
+            "_comment": "Maps kernel source file patterns to testers. Glob-style patterns under net/bluetooth/ and include/net/bluetooth/. A file matching multiple patterns triggers all corresponding testers. Files matching no pattern trigger ALL testers (safe fallback).",
+            "hci": {
+              "files": [
+                "net/bluetooth/hci_core.c",
+                "net/bluetooth/hci_event.c",
+                "net/bluetooth/hci_sync.c",
+                "net/bluetooth/hci_conn.c",
+                "net/bluetooth/hci_codec.c",
+                "net/bluetooth/hci_debugfs.c",
+                "net/bluetooth/hci_sysfs.c",
+                "net/bluetooth/hci_sock.c",
+                "net/bluetooth/hci_drv.c",
+                "net/bluetooth/aosp.c",
+                "net/bluetooth/msft.c",
+                "net/bluetooth/coredump.c",
+                "net/bluetooth/leds.c",
+                "net/bluetooth/lib.c",
+                "include/net/bluetooth/hci.h",
+                "include/net/bluetooth/hci_core.h",
+                "include/net/bluetooth/hci_sync.h",
+                "include/net/bluetooth/hci_drv.h",
+                "include/net/bluetooth/hci_mon.h",
+                "include/net/bluetooth/hci_sock.h",
+                "include/net/bluetooth/bluetooth.h",
+                "include/net/bluetooth/coredump.h"
+              ],
+              "testers": "__all__"
+            },
+            "mgmt": {
+              "files": [
+                "net/bluetooth/mgmt.c",
+                "net/bluetooth/mgmt_util.c",
+                "net/bluetooth/mgmt_config.c",
+                "include/net/bluetooth/mgmt.h"
+              ],
+              "testers": ["mgmt-tester", "mesh-tester"]
+            },
+            "l2cap": {
+              "files": [
+                "net/bluetooth/l2cap_core.c",
+                "net/bluetooth/l2cap_sock.c",
+                "include/net/bluetooth/l2cap.h"
+              ],
+              "testers": ["l2cap-tester"]
+            },
+            "iso": {
+              "files": [
+                "net/bluetooth/iso.c",
+                "include/net/bluetooth/iso.h"
+              ],
+              "testers": ["iso-tester"]
+            },
+            "sco": {
+              "files": [
+                "net/bluetooth/sco.c",
+                "include/net/bluetooth/sco.h"
+              ],
+              "testers": ["sco-tester"]
+            },
+            "rfcomm": {
+              "files": [
+                "net/bluetooth/rfcomm/"
+              ],
+              "testers": ["rfcomm-tester"]
+            },
+            "bnep": {
+              "files": [
+                "net/bluetooth/bnep/"
+              ],
+              "testers": ["bnep-tester"]
+            },
+            "6lowpan": {
+              "files": [
+                "net/bluetooth/6lowpan.c"
+              ],
+              "testers": ["6lowpan-tester"]
+            },
+            "smp": {
+              "files": [
+                "net/bluetooth/smp.c",
+                "net/bluetooth/smp.h",
+                "net/bluetooth/ecdh_helper.c",
+                "net/bluetooth/selftest.c"
+              ],
+              "testers": ["smp-tester"]
+            },
+            "af": {
+              "files": [
+                "net/bluetooth/af_bluetooth.c",
+                "net/bluetooth/eir.c"
+              ],
+              "testers": "__all__"
+            },
+            "build": {
+              "files": [
+                "net/bluetooth/Makefile",
+                "net/bluetooth/Kconfig"
+              ],
+              "testers": "__all__"
+            },
+            "hci_vhci": {
+              "files": [
+                "drivers/bluetooth/hci_vhci.c"
+              ],
+              "testers": "__all__"
+            },
+            "drivers": {
+              "files": [
+                "drivers/bluetooth/"
+              ],
+              "testers": "__none__"
+            }
+          }
         }
       }
     },

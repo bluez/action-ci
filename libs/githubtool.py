@@ -104,6 +104,32 @@ class GithubTool:
             log_error(f"Failed to create check run '{name}': {e}")
             return None
 
+    def pr_add_labels(self, pr, labels):
+        """Add labels to a PR, creating them if they don't exist.
+
+        Args:
+            pr: The PR object
+            labels: List of label strings to add
+
+        Returns:
+            True on success, False on failure
+        """
+        try:
+            for label_name in labels:
+                try:
+                    self._repo.get_label(label_name)
+                except GithubException:
+                    # Label doesn't exist, create it with a blue color
+                    self._repo.create_label(label_name, "0075ca")
+                    log_debug(f"Created label '{label_name}'")
+
+            pr.add_to_labels(*labels)
+            log_debug(f"Added labels to PR: {labels}")
+            return True
+        except GithubException as e:
+            log_error(f"Failed to add labels to PR: {e}")
+            return False
+
     def update_check_run(self, check_run, conclusion, title, summary,
                          text=None):
         """Update a GitHub Check Run with the final result.

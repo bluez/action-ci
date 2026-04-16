@@ -248,9 +248,116 @@ def create_test_list_user(ci_data):
 
     return test_list
 
+def detect_testers(ci_data, ci_config):
+    """Detect which testers to run based on changed files in the PR.
+
+    Uses the file-mapping from config.json to determine which testers are
+    relevant for the files changed by this patch series. Also applies
+    'area:*' labels to the PR for visibility.
+
+    Args:
+        ci_data: The CI context object
+        ci_config: The kernel CI config dict from config.json
+
+    Returns:
+        Set of tester names to run, or None if all testers should run
+    """
+    all_testers = set(ci_config['TestRunner']['tester-list'])
+    file_mapping = ci_config['TestRunner'].get('file-mapping')
+
+    if not file_mapping:
+        log_info("No file-mapping configured, running all testers")
+        return None
+
+    # Get changed files from the patchwork series
+    from sync_patchwork import series_get_file_list
+    try:
+        changed_files = series_get_file_list(ci_data, ci_data.series)
+    except Exception as e:
+        log_error(f"Failed to get file list from series: {e}")
+        return None
+
+    if not changed_files:
+        log_info("No changed files detected, running all testers")
+        return None
+
+    log_info(f"Changed files ({len(changed_files)}): {changed_files}")
+
+    # Match changed files against the mapping
+    matched_testers = set()
+    matched_areas = set()
+    all_matched = False
+
+    for area_name, area_config in file_mapping.items():
+        if area_name.startswith('_'):
+            continue  # Skip comments
+
+        area_files = area_config['files']
+        area_testers = area_config['testers']
+
+        for changed_file in changed_files:
+            for pattern in area_files:
+                # Support directory prefix matching (patterns ending with /)
+                if pattern.endswith('/'):
+                    match = changed_file.startswith(pattern)
+                else:
+                    match = (changed_file == pattern)
+
+                if match:
+                    matched_areas.add(area_name)
+                    if area_testers == '__all__':
+                        all_matched = True
+                        matched_testers = all_testers.copy()
+                    elif area_testers == '__none__':
+                        pass  # Explicitly no testers for this area
+                    else:
+                        matched_testers.update(area_testers)
+                    break  # No need to check more patterns for this file
+
+    # If any changed file didn't match any pattern, run all testers (safe
+    # fallback)
+    for changed_file in changed_files:
+        found = False
+        for area_name, area_config in file_mapping.items():
+            if area_name.startswith('_'):
+                continue
+            for pattern in area_config['files']:
+                if pattern.endswith('/'):
+                    if changed_file.startswith(pattern):
+                        found = True
+                        break
+                elif changed_file == pattern:
+                    found = True
+                    break
+            if found:
+                break
+        if not found:
+            log_info(f"File '{changed_file}' not in any mapping, "
+                     "running all testers")
+            all_matched = True
+            matched_testers = all_testers.copy()
+            break
+
+    # Apply area labels to the PR
+    if matched_areas and not ci_data.config['dry_run']:
+        labels = [f"area:{area}" for area in sorted(matched_areas)]
+        pr = ci_data.gh.get_pr(ci_data.config['pr_num'])
+        ci_data.gh.pr_add_labels(pr, labels)
+        log_info(f"Applied PR labels: {labels}")
+
+    if all_matched:
+        log_info("Running ALL testers")
+        return None  # Signal to run all
+    else:
+        log_info(f"Running testers: {sorted(matched_testers)}")
+        skipped = all_testers - matched_testers
+        if skipped:
+            log_info(f"Skipping testers: {sorted(skipped)}")
+        return matched_testers
+
+
 def create_test_list_kernel(ci_data):
     # Setup CI tests for kernel test
-    # AR: Maybe read the test from config?
     #
     # These are the list of tests:
     test_list = []
@@ -296,8 +403,13 @@ def create_test_list_kernel(ci_data):
                      bluez_src_dir=ci_data.config['bluez_dir']))
 
     # TestRunner-*
+    # Detect which testers to run based on changed files
+    active_testers = detect_testers(ci_data, ci_config)
     testrunner_list = ci_config['TestRunner']['tester-list']
     for runner in testrunner_list:
+        if active_testers is not None and runner not in active_testers:
+            log_debug(f"Skip {runner} (not relevant to changed files)")
+            continue
         log_debug(f"Add {runner} instance to test_list")
         test_list.append(ci.TestRunner(ci_data, runner,
                          bluez_src_dir=ci_data.config['bluez_dir']))
