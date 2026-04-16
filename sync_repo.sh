@@ -44,15 +44,34 @@ git push -f origin "refs/remotes/upstream/$UPSTREAM_BRANCH:refs/heads/$ORIGIN_BR
 echo "$ git push -f origin refs/tags/*"
 git push -f origin "refs/tags/*"
 
-echo ">>> Cherry-pick workflow commit"
-WORKFLOW_SHA=$(git log -1 --format=%H origin/$WORKFLOW_BRANCH)
-echo "workflow commit: $WORKFLOW_SHA"
+echo ">>> Rebase workflow commits onto updated master"
+# Fetch the updated origin to get the new master ref
+echo "$ git fetch origin $ORIGIN_BRANCH $WORKFLOW_BRANCH"
+git fetch origin $ORIGIN_BRANCH $WORKFLOW_BRANCH
+
+# Find workflow-only commits: those that touch .github/ and are unique to
+# the workflow branch (not in master). We filter by path to avoid picking
+# up old Bluetooth commits that may linger if the branches had diverged.
+WORKFLOW_COMMITS=$(git log --reverse --format=%H origin/$ORIGIN_BRANCH..origin/$WORKFLOW_BRANCH -- .github/)
+COMMIT_COUNT=$(echo "$WORKFLOW_COMMITS" | grep -c . || true)
+echo "Found $COMMIT_COUNT workflow commit(s) to rebase"
+
+if [ "$COMMIT_COUNT" -eq 0 ]; then
+    echo "ERROR: No workflow commits found to rebase. Aborting."
+    exit 1
+fi
+
 echo "$ git checkout -b $WORKFLOW_BRANCH origin/$ORIGIN_BRANCH"
 git checkout -b $WORKFLOW_BRANCH origin/$ORIGIN_BRANCH
 echo "$ git branch"
 git branch
-echo "$ git cherry-pick $WORKFLOW_SHA"
-git cherry-pick $WORKFLOW_SHA
+
+for SHA in $WORKFLOW_COMMITS; do
+    SUBJECT=$(git log -1 --format=%s $SHA)
+    echo "Cherry-picking: $SHA ($SUBJECT)"
+    git cherry-pick $SHA
+done
+
 echo "$ git push -f origin $WORKFLOW_BRANCH"
 git push -f origin $WORKFLOW_BRANCH
 
