@@ -49,6 +49,15 @@ def check_args(args):
 
     return True
 
+def check_args_jobs(value):
+    if value == "auto":
+        return os.cpu_count()
+    else:
+        v = int(value)
+        if v <= 0:
+            raise ValueError("Invalid job count")
+        return v
+
 def parse_args():
     ap = argparse.ArgumentParser(description="Run CI tests")
     ap.add_argument('-c', '--config', default='./config.json',
@@ -66,6 +75,8 @@ def parse_args():
                     help='Ratch root directory.')
     ap.add_argument('-d', '--dry-run', action='store_true', default=False,
                     help='Run it without uploading the result. default=False')
+    ap.add_argument('-j', '--jobs', action='store', type=check_args_jobs, default="4",
+                    help='Number of make jobs (number or "auto"). default=4')
 
     # Positional parameter
     ap.add_argument('space', choices=['user', 'kernel'],
@@ -614,7 +625,7 @@ def main():
                       branch=args.branch, dry_run=args.dry_run,
                       bluez_dir=args.bluez_dir, ell_dir=args.ell_dir,
                       kernel_dir=args.kernel_dir, pr_num=args.pr_num,
-                      space=args.space)
+                      space=args.space, jobs=args.jobs)
 
     # Setup Source for the test that needs to access the base like incremental
     # build and scan build. Fetch origin/master so we have the base branch

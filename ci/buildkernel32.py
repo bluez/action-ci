@@ -49,7 +49,8 @@ class BuildKernel32(GenericKernelBuild):
         self.log_dbg(f"New config for 32bit is created: {new_config}")
 
         super().__init__(kernel_config=new_config, simple_build=simple_build,
-                         make_params=make_params, work_dir=self.src_dir)
+                         make_params=make_params, work_dir=self.src_dir,
+                         jobs=ci_data.config.get('jobs'))
 
         self.log_dbg("Initialization completed")
 

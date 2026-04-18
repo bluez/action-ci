@@ -25,7 +25,8 @@ class MakeDistcheck(GenericBuild):
         config_params = ["--disable-lsan", "--disable-asan", "--disable-ubsan"]
         make_params = ["distcheck"]
         super().__init__(config_params=config_params, make_params=make_params,
-                         use_fakeroot=True, work_dir=ci_data.src_dir)
+                         use_fakeroot=True, work_dir=ci_data.src_dir,
+                         jobs=ci_data.config.get('jobs'))
 
         self.log_dbg("Initialization completed")
 
