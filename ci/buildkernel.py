@@ -46,7 +46,8 @@ class BuildKernel(GenericKernelBuild):
         self.stderr = None
 
         super().__init__(kernel_config=kernel_config, simple_build=simple_build,
-                         make_params=make_params, work_dir=self.src_dir)
+                         make_params=make_params, work_dir=self.src_dir,
+                         jobs=ci_data.config.get('jobs'))
 
         self.log_dbg("Initialization completed")
 

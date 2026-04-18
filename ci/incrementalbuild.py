@@ -29,6 +29,8 @@ class IncrementalBuild(Base):
         if self.space == "kernel" and not self.kernel_config:
             self.kernel_config = '/bluetooth_build.config'
 
+        self.jobs = ci_data.config.get('jobs')
+
         super().__init__()
 
         self.log_dbg("Initialization completed")
@@ -57,7 +59,9 @@ class IncrementalBuild(Base):
     def _incremental_make(self):
         """Run make without reconfiguring - truly incremental."""
 
-        cmd = ["make", "-j4"]
+        cmd = ["make"]
+        if self.jobs is not None:
+            cmd += [f"-j{self.jobs}"]
         if self.space == "kernel":
             # Kernel simple build: only Bluetooth sources
             cmd.append('net/bluetooth/')

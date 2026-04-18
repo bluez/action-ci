@@ -18,7 +18,8 @@ class BuildEll(GenericBuild):
         self.desc = "Build and Install ELL"
         self.ci_data = ci_data
 
-        super().__init__(work_dir=ci_data.config['ell_dir'], install=True)
+        super().__init__(work_dir=ci_data.config['ell_dir'], install=True,
+                         jobs=ci_data.config.get('jobs'))
 
         self.log_dbg("Initialization completed")
 

@@ -18,7 +18,7 @@ class GenericKernelBuild(Base):
     """
 
     def __init__(self, kernel_config=None, simple_build=True,
-                 make_params=None, work_dir=None):
+                 make_params=None, work_dir=None, jobs=None):
 
         super().__init__()
 
@@ -36,6 +36,8 @@ class GenericKernelBuild(Base):
 
         # Save the error output
         self.stderr = None
+
+        self.jobs = jobs
 
         self.log_dbg("Initialization completed")
 
@@ -60,7 +62,9 @@ class GenericKernelBuild(Base):
         # make
         self.log_info("Run make")
 
-        base_cmd = ["make", "-j4"]
+        base_cmd = ["make"]
+        if self.jobs is not None:
+            base_cmd += [f"-j{self.jobs}"]
         if self.make_params:
             base_cmd += self.make_params
         self.log_dbg(f"GenericKernelBuild: Base Command: {base_cmd}")
