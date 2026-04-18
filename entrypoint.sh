@@ -214,13 +214,13 @@ case $TASK in
                                        -k $GITHUB_WORKSPACE/$BASE_DIR/src      \
                                        -p $GITHUB_WORKSPACE/$BASE_DIR/patch    \
                                        kernel $GITHUB_REPOSITORY $PR	       \
-                                       --dry-run
+                                       --dry-run -j auto
             elif [ $SPACE == "user" ]; then
                 /ci.py -c /config.json -z $GITHUB_WORKSPACE/$BASE_DIR/src      \
                                        -e $GITHUB_WORKSPACE/$BASE_DIR/ell      \
                                        -p $GITHUB_WORKSPACE/$BASE_DIR/patch    \
                                        user $GITHUB_REPOSITORY $PR	       \
-                                       --dry-run
+                                       --dry-run -j auto
             else
                 echo "Unknown SPACE: $SPACE"
                 exit 1

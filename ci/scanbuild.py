@@ -19,6 +19,9 @@ class ScanBuild(Base):
         self.desc = "Run Scan Build"
         self.ci_data = ci_data
 
+        jobs = ci_data.config.get('jobs')
+        self.jobs = str(jobs) if jobs else "4"
+
         super().__init__()
 
         self.log_dbg("Initialization completed")
@@ -40,7 +43,7 @@ class ScanBuild(Base):
             self.add_failure_end_test(stderr)
 
         # Scan Build Make
-        cmd = ["scan-build", "make", "-j4"]
+        cmd = ["scan-build", "make", "-j" + self.jobs]
         (ret, stdout, stderr) = cmd_run(cmd, cwd=self.ci_data.src_dir)
         if ret:
             self.log_err("Scan Build failed")

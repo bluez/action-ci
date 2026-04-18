@@ -29,7 +29,8 @@ class BuildBluez(GenericBuild):
             self.dry_run = dry_run
 
         super().__init__(config_params=config_params, work_dir=self.src_dir,
-                         make_params=self.make_params)
+                         make_params=self.make_params,
+                         jobs=ci_data.config.get('jobs'))
 
         self.log_dbg("Initialization completed")
 
