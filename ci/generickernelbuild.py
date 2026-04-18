@@ -18,7 +18,7 @@ class GenericKernelBuild(Base):
     """
 
     def __init__(self, kernel_config=None, simple_build=True,
-                 make_params=None, work_dir=None):
+                 make_params=None, work_dir=None, jobs=None):
 
         super().__init__()
 
@@ -37,6 +37,8 @@ class GenericKernelBuild(Base):
         # Save the error output
         self.stderr = None
 
+        self.jobs = str(jobs) if jobs else "4"
+
         self.log_dbg("Initialization completed")
 
     def run(self):
@@ -50,6 +52,8 @@ class GenericKernelBuild(Base):
         # Update .config
         self.log_info("GenericKernelBuild: Run make olddefconfig")
         cmd = ["make", "olddefconfig"]
+        if self.make_params:
+            cmd += self.make_params
         (ret, stdout, stderr) = cmd_run(cmd, cwd=self.work_dir)
         if ret:
             self.log_err("GenericKernelBuild: Failed to config the kernel")
@@ -58,7 +62,7 @@ class GenericKernelBuild(Base):
         # make
         self.log_info("Run make")
 
-        base_cmd = ["make", "-j4"]
+        base_cmd = ["make", "-j" + self.jobs]
         if self.make_params:
             base_cmd += self.make_params
         self.log_dbg(f"GenericKernelBuild: Base Command: {base_cmd}")

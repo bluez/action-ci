@@ -2,6 +2,8 @@
 
 set -e
 
+export PATH=/opt/llvm/bin:$PATH
+
 echo "Environment Variables:"
 echo "   Workflow:   $GITHUB_WORKFLOW"
 echo "   Action:     $GITHUB_ACTION"
@@ -171,9 +173,62 @@ case $TASK in
                 exit 1
             fi
         ;;
+    localci)
+        echo "Task: local CI"
+            mkdir -p /work
+            mkdir -p /work/base
+            GITHUB_WORKSPACE=/work
+            BASE_DIR=base
+
+            SPACE="$2"
+            GITHUB_REPOSITORY="$3"
+            PR="$4"
+
+            git config --global user.name "local"
+            git config --global user.email "local@users.noreply.github.com"
+
+            echo "Target ($SPACE): $GITHUB_REPOSITORY PR: $PR"
+
+            ls -l "$GITHUB_WORKSPACE/$BASE_DIR"
+            if ! test -d "$GITHUB_WORKSPACE/$BASE_DIR/src"; then
+                echo "Cloning https://github.com/$GITHUB_REPOSITORY"
+                git clone --depth 1 "https://github.com/$GITHUB_REPOSITORY" \
+                    $GITHUB_WORKSPACE/$BASE_DIR/src
+            fi
+            set_git_safe_dir $GITHUB_WORKSPACE/$BASE_DIR/src
+
+            if ! test -d "$GITHUB_WORKSPACE/$BASE_DIR/ell"; then
+                clone_ell $GITHUB_WORKSPACE/$BASE_DIR/ell
+            fi
+            set_git_safe_dir $GITHUB_WORKSPACE/$BASE_DIR/ell
+
+            mkdir $GITHUB_WORKSPACE/$BASE_DIR/patch
+
+            if [ $SPACE == "kernel" ]; then
+                if ! test -d "$GITHUB_WORKSPACE/$BASE_DIR/bluez"; then
+                    clone_bluez $GITHUB_WORKSPACE/$BASE_DIR/bluez
+                fi
+                set_git_safe_dir $GITHUB_WORKSPACE/$BASE_DIR/bluez
+                /ci.py -c /config.json -z $GITHUB_WORKSPACE/$BASE_DIR/bluez    \
+                                       -e $GITHUB_WORKSPACE/$BASE_DIR/ell      \
+                                       -k $GITHUB_WORKSPACE/$BASE_DIR/src      \
+                                       -p $GITHUB_WORKSPACE/$BASE_DIR/patch    \
+                                       kernel $GITHUB_REPOSITORY $PR	       \
+                                       --dry-run -j auto
+            elif [ $SPACE == "user" ]; then
+                /ci.py -c /config.json -z $GITHUB_WORKSPACE/$BASE_DIR/src      \
+                                       -e $GITHUB_WORKSPACE/$BASE_DIR/ell      \
+                                       -p $GITHUB_WORKSPACE/$BASE_DIR/patch    \
+                                       user $GITHUB_REPOSITORY $PR	       \
+                                       --dry-run -j auto
+            else
+                echo "Unknown SPACE: $SPACE"
+                exit 1
+            fi
+        ;;
     *)
         echo "Unknown TASK: $TASK"
-        eixt 1
+        exit 1
         ;;
 esac
 

@@ -15,7 +15,7 @@ class GenericBuild(Base):
     def __init__(self, config_cmd=None, config_params=None,
                  make_cmd=None, make_params=None,
                  use_fakeroot=False, install=False, install_params=None,
-                 work_dir=None):
+                 work_dir=None, jobs=None):
 
         super().__init__()
 
@@ -40,6 +40,8 @@ class GenericBuild(Base):
 
         self.stderr = None
 
+        self.jobs = jobs if jobs else "4"
+
         self.log_dbg("Initialization completed")
 
     def run(self):
@@ -58,7 +60,7 @@ class GenericBuild(Base):
 
         # Make
         # AR: Maybe read from /proc for job count
-        cmd = [self.make_cmd, "-j4"]
+        cmd = [self.make_cmd, "-j" + str(self.jobs)]
         if self.use_fakeroot:
             cmd = ["fakeroot"] + cmd
         if self.make_params:

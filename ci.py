@@ -66,6 +66,8 @@ def parse_args():
                     help='Ratch root directory.')
     ap.add_argument('-d', '--dry-run', action='store_true', default=False,
                     help='Run it without uploading the result. default=False')
+    ap.add_argument('-j', '--jobs', action='store', type=str, default="4",
+                    help='Number of make jobs (number or "auto"). default=4')
 
     # Positional parameter
     ap.add_argument('space', choices=['user', 'kernel'],
@@ -396,6 +398,9 @@ def create_test_list_kernel(ci_data):
     # BuildKernel32
     test_list.append(ci.BuildKernel32(ci_data, kernel_config=kernel_config))
 
+    # CheckKernelLLVM
+    test_list.append(ci.CheckKernelLLVM(ci_data, kernel_config=kernel_config))
+
     # TestRunnerSetup
     tester_config = os.path.join(ci_data.config['bluez_dir'],
                                  "doc", "tester.config")
@@ -501,6 +506,9 @@ def main():
         log_error(f"Invalid parameter(space) {args.space}")
         sys.exit(1)
 
+    if args.jobs == "auto":
+        args.jobs = str(os.cpu_count())
+
     ci_data = Context(config_file=os.path.abspath(args.config),
                       github_repo=args.repo,
                       src_dir=main_src,
@@ -508,7 +516,7 @@ def main():
                       branch=args.branch, dry_run=args.dry_run,
                       bluez_dir=args.bluez_dir, ell_dir=args.ell_dir,
                       kernel_dir=args.kernel_dir, pr_num=args.pr_num,
-                      space=args.space)
+                      space=args.space, jobs=args.jobs)
 
     # Setup Source for the test that needs to access the base like incremental
     # build.

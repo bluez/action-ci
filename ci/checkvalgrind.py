@@ -27,7 +27,8 @@ class CheckValgrind(GenericBuild):
         config_params = ["--disable-lsan", "--disable-asan"]
         make_params = ["check"]
         super().__init__(config_params=config_params, make_params=make_params,
-                         work_dir=ci_data.src_dir)
+                         work_dir=ci_data.src_dir,
+                         jobs=ci_data.config.get('jobs'))
 
         self.log_dbg("Initialization completed")
 

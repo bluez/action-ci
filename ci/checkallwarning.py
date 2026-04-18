@@ -10,7 +10,8 @@ class CheckAllWarning(GenericKernelBuild):
     This class runs the kernel build with all warning enabled.
     """
 
-    def __init__(self, ci_data, kernel_config=None, src_dir=None, dry_run=None):
+    def __init__(self, ci_data, kernel_config=None, src_dir=None, dry_run=None,
+                 make_params=None):
 
         self.name = "CheckAllWarning"
         self.desc = "Run linux kernel with all warning enabled"
@@ -30,8 +31,14 @@ class CheckAllWarning(GenericKernelBuild):
             self.log_dbg(f"Override the dry_run flag: {dry_run}")
             self.dry_run = dry_run
 
+        if make_params:
+            make_params = ['W=1'] + make_params
+        else:
+            make_params = ['W=1']
+
         super().__init__(kernel_config=kernel_config, simple_build=True,
-                         make_params=['W=1'], work_dir=self.src_dir)
+                         make_params=make_params, work_dir=self.src_dir,
+                         jobs=ci_data.config.get('jobs'))
 
         self.log_dbg("Initialization completed")
 
@@ -52,7 +59,7 @@ class CheckAllWarning(GenericKernelBuild):
         if self.verdict == Verdict.FAIL:
             submit_pw_check(self.ci_data.pw, self.ci_data.patch_1,
                             self.name, Verdict.FAIL,
-                            "CheckAllWarning: FAIL: " + self.output,
+                            f"{self.name}: FAIL: " + self.output,
                             None, self.dry_run)
             # Test verdict and output is already set by the super().run().
             # Just raising EndTest exception is enough here
@@ -64,7 +71,7 @@ class CheckAllWarning(GenericKernelBuild):
             # Build success
             submit_pw_check(self.ci_data.pw, self.ci_data.patch_1,
                             self.name, Verdict.PASS,
-                            "CheckAllWarning PASS",
+                            f"{self.name} PASS",
                             None, self.dry_run)
             # Actually no need to call success() here. But add it here just for
             # reference
@@ -86,7 +93,7 @@ class CheckAllWarning(GenericKernelBuild):
             # Found error and return warning
             submit_pw_check(self.ci_data.pw, self.ci_data.patch_1,
                             self.name, Verdict.WARNING,
-                            "CheckSparse WARNING " + output_str,
+                            f"{self.name} WARNING " + output_str,
                             None, self.dry_run)
             self.warning(output_str)
             return
@@ -94,7 +101,7 @@ class CheckAllWarning(GenericKernelBuild):
         # Build success
         submit_pw_check(self.ci_data.pw, self.ci_data.patch_1,
                         self.name, Verdict.PASS,
-                        "CheckSparse PASS",
+                        f"{self.name} PASS",
                         None, self.dry_run)
         # Actually no need to call success() here. But add it here just for
         # reference
