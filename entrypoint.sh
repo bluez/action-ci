@@ -2,6 +2,8 @@
 
 set -e
 
+export PATH=/opt/llvm/bin:$PATH
+
 echo "Environment Variables:"
 echo "   Workflow:   $GITHUB_WORKFLOW"
 echo "   Action:     $GITHUB_ACTION"

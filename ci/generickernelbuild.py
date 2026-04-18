@@ -50,6 +50,8 @@ class GenericKernelBuild(Base):
         # Update .config
         self.log_info("GenericKernelBuild: Run make olddefconfig")
         cmd = ["make", "olddefconfig"]
+        if self.make_params:
+            cmd += self.make_params
         (ret, stdout, stderr) = cmd_run(cmd, cwd=self.work_dir)
         if ret:
             self.log_err("GenericKernelBuild: Failed to config the kernel")
