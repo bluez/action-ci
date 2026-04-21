@@ -11,10 +11,11 @@ from ci import GenericBuild
 class CheckValgrind(GenericBuild):
     """BlueZ Make Check with Valgrind
     This class runs 'make check' with Valgrind. Unlike MakeCheck, it needs to
-    build the source, so it expects the source is clean
+    build the source, so it expects the source is clean.
+    Optionally accepts a list of specific test binaries to run via TESTS=.
     """
 
-    def __init__(self, ci_data):
+    def __init__(self, ci_data, test_list=None):
         # For valgrind check, use the following config params to disable the
         # lsan and asan
         # config: --disable-lsan --disable-asan
@@ -26,6 +27,9 @@ class CheckValgrind(GenericBuild):
 
         config_params = ["--disable-lsan", "--disable-asan"]
         make_params = ["check"]
+        if test_list:
+            tests_str = " ".join(test_list)
+            make_params.append(f"TESTS={tests_str}")
         super().__init__(config_params=config_params, make_params=make_params,
                          work_dir=ci_data.src_dir)
 

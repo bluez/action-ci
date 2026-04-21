@@ -204,7 +204,6 @@ def report_ci(ci_data, test_list):
 
 def create_test_list_user(ci_data):
     # Setup CI tests
-    # AR: Maybe read the test from config?
     #
     # These are the list of tests:
     test_list = []
@@ -225,14 +224,25 @@ def create_test_list_user(ci_data):
     # Build BlueZ
     test_list.append(ci.BuildBluez(ci_data))
 
-    # Make Check
-    test_list.append(ci.MakeCheck(ci_data))
+    # Detect which unit tests to run based on changed files
+    unit_test_list = detect_user_checks(ci_data)
 
-    # Make distcheck
-    test_list.append(ci.MakeDistcheck(ci_data))
-
-    # Make check w/ Valgrind
-    test_list.append(ci.CheckValgrind(ci_data))
+    # Make Check - only if there are unit tests to run
+    # unit_test_list: None = run all, [] = skip, [...] = run subset
+    if unit_test_list is None:
+        # Run all tests
+        test_list.append(ci.MakeCheck(ci_data))
+        test_list.append(ci.MakeDistcheck(ci_data))
+        test_list.append(ci.CheckValgrind(ci_data))
+    elif unit_test_list:
+        # Run specific tests
+        test_list.append(ci.MakeCheck(ci_data, test_list=unit_test_list))
+        test_list.append(ci.MakeDistcheck(ci_data))
+        test_list.append(ci.CheckValgrind(ci_data,
+                                          test_list=unit_test_list))
+    else:
+        log_info("Skipping MakeCheck/MakeDistcheck/CheckValgrind "
+                 "(no unit-tested code changed)")
 
     # Check Smatch
     test_list.append(ci.CheckSmatch(ci_data, "user", tool_dir="/smatch"))
@@ -247,6 +257,69 @@ def create_test_list_user(ci_data):
     test_list.append(ci.ScanBuild(ci_data))
 
     return test_list
+
+def _get_changed_files(ci_data):
+    """Get the list of changed files from the patchwork series.
+
+    Returns:
+        List of file paths, or None on error
+    """
+    from sync_patchwork import series_get_file_list
+    try:
+        changed_files = series_get_file_list(ci_data, ci_data.series)
+    except Exception as e:
+        log_error(f"Failed to get file list from series: {e}")
+        return None
+
+    if not changed_files:
+        log_info("No changed files detected")
+        return None
+
+    log_info(f"Changed files ({len(changed_files)}): {changed_files}")
+    return changed_files
+
+
+def _match_files_to_areas(changed_files, file_mapping):
+    """Match changed files against a file-mapping config.
+
+    Returns:
+        (matched_areas, unmatched_files) tuple where matched_areas is a dict
+        of {area_name: area_config} for areas that had at least one file match,
+        and unmatched_files is a list of files that matched no pattern.
+    """
+    matched_areas = {}
+    unmatched_files = []
+
+    for changed_file in changed_files:
+        found = False
+        for area_name, area_config in file_mapping.items():
+            if area_name.startswith('_'):
+                continue
+            for pattern in area_config['files']:
+                if pattern.endswith('/'):
+                    match = changed_file.startswith(pattern)
+                else:
+                    match = (changed_file == pattern)
+                if match:
+                    matched_areas[area_name] = area_config
+                    found = True
+                    break
+            if found:
+                break
+        if not found:
+            unmatched_files.append(changed_file)
+
+    return matched_areas, unmatched_files
+
+
+def _apply_area_labels(ci_data, matched_areas):
+    """Apply area:* labels to the PR for visibility."""
+    if matched_areas and not ci_data.config['dry_run']:
+        labels = [f"area:{area}" for area in sorted(matched_areas)]
+        pr = ci_data.gh.get_pr(ci_data.config['pr_num'])
+        ci_data.gh.pr_add_labels(pr, labels)
+        log_info(f"Applied PR labels: {labels}")
+
 
 def detect_testers(ci_data, ci_config):
     """Detect which testers to run based on changed files in the PR.
@@ -269,91 +342,114 @@ def detect_testers(ci_data, ci_config):
         log_info("No file-mapping configured, running all testers")
         return None
 
-    # Get changed files from the patchwork series
-    from sync_patchwork import series_get_file_list
-    try:
-        changed_files = series_get_file_list(ci_data, ci_data.series)
-    except Exception as e:
-        log_error(f"Failed to get file list from series: {e}")
-        return None
-
+    changed_files = _get_changed_files(ci_data)
     if not changed_files:
-        log_info("No changed files detected, running all testers")
         return None
 
-    log_info(f"Changed files ({len(changed_files)}): {changed_files}")
-
-    # Match changed files against the mapping
-    matched_testers = set()
-    matched_areas = set()
-    all_matched = False
-
-    for area_name, area_config in file_mapping.items():
-        if area_name.startswith('_'):
-            continue  # Skip comments
-
-        area_files = area_config['files']
-        area_testers = area_config['testers']
-
-        for changed_file in changed_files:
-            for pattern in area_files:
-                # Support directory prefix matching (patterns ending with /)
-                if pattern.endswith('/'):
-                    match = changed_file.startswith(pattern)
-                else:
-                    match = (changed_file == pattern)
-
-                if match:
-                    matched_areas.add(area_name)
-                    if area_testers == '__all__':
-                        all_matched = True
-                        matched_testers = all_testers.copy()
-                    elif area_testers == '__none__':
-                        pass  # Explicitly no testers for this area
-                    else:
-                        matched_testers.update(area_testers)
-                    break  # No need to check more patterns for this file
+    matched_areas, unmatched_files = _match_files_to_areas(
+        changed_files, file_mapping)
 
     # If any changed file didn't match any pattern, run all testers (safe
     # fallback)
-    for changed_file in changed_files:
-        found = False
-        for area_name, area_config in file_mapping.items():
-            if area_name.startswith('_'):
-                continue
-            for pattern in area_config['files']:
-                if pattern.endswith('/'):
-                    if changed_file.startswith(pattern):
-                        found = True
-                        break
-                elif changed_file == pattern:
-                    found = True
-                    break
-            if found:
-                break
-        if not found:
-            log_info(f"File '{changed_file}' not in any mapping, "
-                     "running all testers")
+    if unmatched_files:
+        for f in unmatched_files:
+            log_info(f"File '{f}' not in any mapping, running all testers")
+        _apply_area_labels(ci_data, matched_areas)
+        return None
+
+    # Resolve testers from matched areas
+    matched_testers = set()
+    all_matched = False
+    for area_name, area_config in matched_areas.items():
+        area_testers = area_config['testers']
+        if area_testers == '__all__':
             all_matched = True
             matched_testers = all_testers.copy()
-            break
+        elif area_testers == '__none__':
+            pass
+        else:
+            matched_testers.update(area_testers)
 
-    # Apply area labels to the PR
-    if matched_areas and not ci_data.config['dry_run']:
-        labels = [f"area:{area}" for area in sorted(matched_areas)]
-        pr = ci_data.gh.get_pr(ci_data.config['pr_num'])
-        ci_data.gh.pr_add_labels(pr, labels)
-        log_info(f"Applied PR labels: {labels}")
+    _apply_area_labels(ci_data, matched_areas)
 
     if all_matched:
         log_info("Running ALL testers")
-        return None  # Signal to run all
+        return None
     else:
         log_info(f"Running testers: {sorted(matched_testers)}")
         skipped = all_testers - matched_testers
         if skipped:
             log_info(f"Skipping testers: {sorted(skipped)}")
         return matched_testers
+
+
+def detect_user_checks(ci_data):
+    """Detect which unit tests to run for userspace patches.
+
+    Examines the changed files against the user space file-mapping to
+    build a list of unit test binaries that should run. If only
+    daemon/plugin/client code changed, no tests need to run.
+
+    Args:
+        ci_data: The CI context object
+
+    Returns:
+        List of test binary paths to run (e.g. ["unit/test-bap"]),
+        None to run all tests (fallback), or empty list to skip tests.
+    """
+    ci_config = ci_data.config['space_details']['user'].get('ci')
+    if not ci_config:
+        log_info("No user CI config, running all checks")
+        return None
+
+    file_mapping = ci_config.get('file-mapping')
+    if not file_mapping:
+        log_info("No user file-mapping configured, running all checks")
+        return None
+
+    changed_files = _get_changed_files(ci_data)
+    if not changed_files:
+        return None
+
+    matched_areas, unmatched_files = _match_files_to_areas(
+        changed_files, file_mapping)
+
+    # Unmatched files -> safe fallback, run everything
+    if unmatched_files:
+        for f in unmatched_files:
+            log_info(f"File '{f}' not in any user mapping, "
+                     "running all checks")
+        _apply_area_labels(ci_data, matched_areas)
+        return None
+
+    _apply_area_labels(ci_data, matched_areas)
+
+    # Collect unit tests from matched areas
+    run_all = False
+    test_set = set()
+    for area_name, area_config in matched_areas.items():
+        unit_tests = area_config.get('unit_tests', [])
+        if unit_tests == '__all__':
+            run_all = True
+            log_info(f"Area '{area_name}' requires all unit tests")
+            break
+        elif unit_tests:
+            test_set.update(unit_tests)
+            log_info(f"Area '{area_name}' -> {unit_tests}")
+
+    if run_all:
+        log_info("Running ALL unit tests")
+        return None
+
+    if test_set:
+        test_list = sorted(test_set)
+        log_info(f"Running unit tests: {test_list}")
+        return test_list
+    else:
+        areas = sorted(matched_areas.keys())
+        log_info(f"Only daemon/non-tested code changed ({areas}), "
+                 "skipping MakeCheck/Valgrind/Distcheck")
+        return []
 
 
 def create_test_list_kernel(ci_data):

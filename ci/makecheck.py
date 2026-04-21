@@ -8,15 +8,17 @@ from ci import Base, Verdict, submit_pw_check
 class MakeCheck(Base):
     """BlueZ Make Check class
     This class runs 'make check' with Bluez, and it assumes that the source
-    is already compiled
+    is already compiled. Optionally accepts a list of specific test binaries
+    to run via TESTS= override.
     """
 
-    def __init__(self, ci_data):
+    def __init__(self, ci_data, test_list=None):
 
         # Common
         self.name = "MakeCheck"
         self.desc = "Run Bluez Make Check"
         self.ci_data = ci_data
+        self.test_list = test_list
 
         super().__init__()
 
@@ -28,6 +30,11 @@ class MakeCheck(Base):
         self.start_timer()
 
         cmd = ["make", "check"]
+        if self.test_list:
+            tests_str = " ".join(self.test_list)
+            cmd.append(f"TESTS={tests_str}")
+            self.log_info(f"Running subset of tests: {tests_str}")
+
         (ret, stdout, stderr) = cmd_run(cmd, cwd=self.ci_data.src_dir)
         if ret:
             submit_pw_check(self.ci_data.pw, self.ci_data.patch_1,

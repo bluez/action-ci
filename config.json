@@ -172,7 +172,294 @@
         "Bluetooth:",
         "pull request"
       ],
-      "upstream": "https://git.kernel.org/pub/scm/bluetooth/bluez.git/"
+      "upstream": "https://git.kernel.org/pub/scm/bluetooth/bluez.git/",
+      "ci": {
+        "file-mapping": {
+          "_comment": "Maps BlueZ source file patterns to areas. 'unit_tests' lists which test binaries to run. '__all__' means run all tests. Empty list means no tests to run (skip make check).",
+          "shared-gatt": {
+            "files": [
+              "src/shared/gatt-client.c",
+              "src/shared/gatt-server.c",
+              "src/shared/gatt-db.c",
+              "src/shared/gatt-helpers.c",
+              "src/shared/att.c"
+            ],
+            "unit_tests": ["unit/test-gatt"]
+          },
+          "shared-bap": {
+            "files": [
+              "src/shared/bap.c",
+              "src/shared/bap-debug.c"
+            ],
+            "unit_tests": ["unit/test-bap"]
+          },
+          "shared-bass": {
+            "files": [
+              "src/shared/bass.c"
+            ],
+            "unit_tests": ["unit/test-bass"]
+          },
+          "shared-vcp": {
+            "files": [
+              "src/shared/vcp.c"
+            ],
+            "unit_tests": ["unit/test-vcp"]
+          },
+          "shared-micp": {
+            "files": [
+              "src/shared/micp.c"
+            ],
+            "unit_tests": ["unit/test-micp"]
+          },
+          "shared-mcp": {
+            "files": [
+              "src/shared/mcp.c"
+            ],
+            "unit_tests": ["unit/test-mcp"]
+          },
+          "shared-tmap": {
+            "files": [
+              "src/shared/tmap.c"
+            ],
+            "unit_tests": ["unit/test-tmap"]
+          },
+          "shared-gmap": {
+            "files": [
+              "src/shared/gmap.c"
+            ],
+            "unit_tests": ["unit/test-gmap"]
+          },
+          "shared-rap": {
+            "files": [
+              "src/shared/rap.c"
+            ],
+            "unit_tests": ["unit/test-rap"]
+          },
+          "shared-battery": {
+            "files": [
+              "src/shared/battery.c"
+            ],
+            "unit_tests": ["unit/test-battery"]
+          },
+          "shared-crypto": {
+            "files": [
+              "src/shared/crypto.c"
+            ],
+            "unit_tests": ["unit/test-crypto"]
+          },
+          "shared-ecc": {
+            "files": [
+              "src/shared/ecc.c"
+            ],
+            "unit_tests": ["unit/test-ecc"]
+          },
+          "shared-mgmt": {
+            "files": [
+              "src/shared/mgmt.c"
+            ],
+            "unit_tests": ["unit/test-mgmt"]
+          },
+          "shared-hfp": {
+            "files": [
+              "src/shared/hfp.c"
+            ],
+            "unit_tests": ["unit/test-hfp"]
+          },
+          "shared-uhid": {
+            "files": [
+              "src/shared/uhid.c"
+            ],
+            "unit_tests": ["unit/test-uhid"]
+          },
+          "shared-util": {
+            "files": [
+              "src/shared/util.c"
+            ],
+            "unit_tests": ["unit/test-util"]
+          },
+          "shared-queue": {
+            "files": [
+              "src/shared/queue.c"
+            ],
+            "unit_tests": ["unit/test-queue"]
+          },
+          "shared-ringbuf": {
+            "files": [
+              "src/shared/ringbuf.c"
+            ],
+            "unit_tests": ["unit/test-ringbuf"]
+          },
+          "shared-tester": {
+            "files": [
+              "src/shared/tester.c"
+            ],
+            "unit_tests": ["unit/test-tester"]
+          },
+          "shared-other": {
+            "files": [
+              "src/shared/"
+            ],
+            "unit_tests": []
+          },
+          "eir": {
+            "files": [
+              "src/eir.c",
+              "src/eir.h"
+            ],
+            "unit_tests": ["unit/test-eir"]
+          },
+          "textfile": {
+            "files": [
+              "src/textfile.c",
+              "src/textfile.h"
+            ],
+            "unit_tests": ["unit/test-textfile"]
+          },
+          "sdp": {
+            "files": [
+              "src/sdpd-database.c",
+              "src/sdpd-service.c",
+              "src/sdpd-request.c",
+              "src/sdpd.h"
+            ],
+            "unit_tests": ["unit/test-sdp"]
+          },
+          "lib": {
+            "files": [
+              "lib/"
+            ],
+            "unit_tests": ["unit/test-lib", "unit/test-uuid"]
+          },
+          "gdbus": {
+            "files": [
+              "gdbus/"
+            ],
+            "unit_tests": ["unit/test-gdbus-client"]
+          },
+          "gobex": {
+            "files": [
+              "gobex/"
+            ],
+            "unit_tests": [
+              "unit/test-gobex",
+              "unit/test-gobex-header",
+              "unit/test-gobex-packet",
+              "unit/test-gobex-transfer",
+              "unit/test-gobex-apparam"
+            ]
+          },
+          "attrib": {
+            "files": [
+              "attrib/"
+            ],
+            "unit_tests": ["unit/test-gattrib"]
+          },
+          "btio": {
+            "files": [
+              "btio/"
+            ],
+            "unit_tests": "__all__"
+          },
+          "monitor": {
+            "files": [
+              "monitor/"
+            ],
+            "unit_tests": ["unit/test-crc"]
+          },
+          "mesh": {
+            "files": [
+              "mesh/"
+            ],
+            "unit_tests": ["unit/test-mesh-crypto"]
+          },
+          "unit": {
+            "files": [
+              "unit/"
+            ],
+            "unit_tests": "__all__"
+          },
+          "profiles-audio": {
+            "files": [
+              "profiles/audio/"
+            ],
+            "unit_tests": [
+              "unit/test-avdtp",
+              "unit/test-avctp",
+              "unit/test-avrcp"
+            ]
+          },
+          "profiles-input": {
+            "files": [
+              "profiles/input/"
+            ],
+            "unit_tests": ["unit/test-hog"]
+          },
+          "profiles-midi": {
+            "files": [
+              "profiles/midi/"
+            ],
+            "unit_tests": ["unit/test-midi"]
+          },
+          "profiles-other": {
+            "files": [
+              "profiles/"
+            ],
+            "unit_tests": []
+          },
+          "daemon": {
+            "files": [
+              "src/"
+            ],
+            "unit_tests": []
+          },
+          "plugins": {
+            "files": [
+              "plugins/"
+            ],
+            "unit_tests": []
+          },
+          "client": {
+            "files": [
+              "client/"
+            ],
+            "unit_tests": []
+          },
+          "tools": {
+            "files": [
+              "tools/"
+            ],
+            "unit_tests": []
+          },
+          "obexd": {
+            "files": [
+              "obexd/"
+            ],
+            "unit_tests": []
+          },
+          "emulator": {
+            "files": [
+              "emulator/"
+            ],
+            "unit_tests": []
+          },
+          "peripheral": {
+            "files": [
+              "peripheral/"
+            ],
+            "unit_tests": []
+          },
+          "build": {
+            "files": [
+              "Makefile.am",
+              "Makefile.in",
+              "configure.ac",
+              "configure",
+              "acinclude.m4"
+            ],
+            "unit_tests": "__all__"
+          }
+        }
+      }
     }
   }
 }
