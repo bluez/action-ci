@@ -607,14 +607,13 @@ def main():
                       space=args.space)
 
     # Setup Source for the test that needs to access the base like incremental
-    # build.
-    # Deepen the shallow clone so HEAD~N is reachable (N = number of commits
-    # in the PR). Using --deepen instead of --depth ensures we extend the
-    # existing shallow history rather than re-fetching.
+    # build and scan build. Fetch origin/master so we have the base branch
+    # ref available (the shallow clone from actions/checkout only has the
+    # merge commit).
     pr = ci_data.gh.get_pr(args.pr_num, force=True)
-    cmd = ['fetch', f'--deepen={pr.commits+1}']
+    cmd = ['fetch', 'origin', 'master']
     if ci_data.src_repo.git(cmd):
-        log_error("Failed to fetch commits in the patches")
+        log_error("Failed to fetch origin/master")
         sys.exit(1)
 
     # Get the patchwork series data and save in CI data

@@ -75,11 +75,12 @@ class IncrementalBuild(Base):
 
         self.start_timer()
 
-        # Reset source tree to the base commit (before the PR patches) so
-        # patches can be applied one-by-one for incremental building.
-        num_patches = len(self.ci_data.series['patches'])
-        self.log_info(f"Resetting source to HEAD~{num_patches} (base commit)")
-        if self.ci_data.src_repo.git_reset(f'HEAD~{num_patches}', hard=True):
+        # Reset source tree to origin/master so patches can be applied
+        # one-by-one for incremental building. Using origin/master directly
+        # avoids issues with merge commits (refs/pull/N/merge) where HEAD~N
+        # walks back through master history instead of the PR commits.
+        self.log_info("Resetting source to origin/master (base commit)")
+        if self.ci_data.src_repo.git_reset('origin/master', hard=True):
             self.log_err("Failed to reset to base commit")
             self.add_failure_end_test("Failed to reset to base commit")
 
