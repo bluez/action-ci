@@ -24,7 +24,8 @@ class MakeExtEll(GenericBuild):
         self.ci_data = ci_data
 
         config_params = ["--enable-external-ell", "--disable-lsan", "--disable-asan", "--disable-ubsan"]
-        super().__init__(config_params=config_params, work_dir=ci_data.src_dir)
+        super().__init__(config_params=config_params, work_dir=ci_data.src_dir,
+                         jobs=ci_data.config.get('jobs'))
 
         self.log_dbg("Initialization completed")
 

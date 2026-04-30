@@ -31,7 +31,8 @@ class CheckValgrind(GenericBuild):
             tests_str = " ".join(test_list)
             make_params.append(f"TESTS={tests_str}")
         super().__init__(config_params=config_params, make_params=make_params,
-                         work_dir=ci_data.src_dir)
+                         work_dir=ci_data.src_dir,
+                         jobs=ci_data.config.get('jobs'))
 
         self.log_dbg("Initialization completed")
 

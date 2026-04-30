@@ -43,17 +43,15 @@ class Context():
         # Init github
         log_info(f"Initialize Github: {github_repo}")
         if 'GITHUB_TOKEN' not in os.environ:
-            log_error("Set GITHUB_TOKEN environment variable")
-            raise ContextError
+            log_info("GITHUB_TOKEN environment variable not set")
 
         # Use a separate token for Check Runs API (requires GitHub App token,
         # not a PAT). Falls back to GITHUB_TOKEN if not set.
-        checks_token = os.environ.get('GITHUB_CHECKS_TOKEN',
-                                       os.environ['GITHUB_TOKEN'])
+        token = os.environ.get('GITHUB_TOKEN', None)
+        checks_token = os.environ.get('GITHUB_CHECKS_TOKEN', token)
 
         try:
-            self.gh = GithubTool(github_repo, os.environ['GITHUB_TOKEN'],
-                                 checks_token=checks_token)
+            self.gh = GithubTool(github_repo, token, checks_token=checks_token)
         except:
             log_error("Failed to initialize GithubTool class")
             raise ContextError

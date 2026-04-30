@@ -31,7 +31,8 @@ class CheckSparse(GenericKernelBuild):
             self.dry_run = dry_run
 
         super().__init__(kernel_config=kernel_config, simple_build=True,
-                         make_params=['C=1'], work_dir=self.src_dir)
+                         make_params=['C=1'], work_dir=self.src_dir,
+                         jobs=ci_data.config.get('jobs'))
 
         self.log_dbg("Initialization completed")
 
