@@ -57,8 +57,9 @@ class TestRunner(Base):
                             None, self.ci_data.config['dry_run'])
             self.add_failure_end_test("No tester found")
 
-        # Running tester
-        cmd = [self.test_runner, "-k", self.test_img, "--", tester_path]
+        # Running tester under valgrind for crash backtrace and memory checking
+        cmd = [self.test_runner, "-k", self.test_img, "--",
+               "valgrind", "--error-exitcode=65", tester_path]
         (ret, stdout, stderr) = cmd_run(cmd, cwd=self.bluez_src_dir)
         if ret:
             self.log_err("Test failed to run")
@@ -122,6 +123,15 @@ class TestRunner(Base):
                 else:
                     splat = splat + ["..."]
                 self.add_failure("\n".join(splat))
+
+            if re.search(r"Segmentation fault|Signal 11|Process terminating with default action of signal 11", line):
+                splat = lines[max(0, lineno-5):lineno+20]
+                self.add_failure("Crash detected:\n" + "\n".join(splat))
+
+            if re.search(r"==\d+== ERROR SUMMARY: [1-9]", line):
+                # Capture valgrind error summary and preceding context
+                splat = lines[max(0, lineno-30):lineno+1]
+                self.add_failure("Valgrind errors:\n" + "\n".join(splat))
 
             if re.search(r"^Test Summary", line):
                 self.log_dbg("Start to check fail in the line")
