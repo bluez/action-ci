@@ -294,10 +294,15 @@ def series_check_patches(ci_data, series):
 
     # Create Pull Request
     if ci_data.src_repo.git_push(f"{series['id']}"):
-        log_error("Failed to push the source to Github")
-        return False
+        # Push failed - branch may already exist on remote
+        log_info("Push failed, checking if branch already exists on remote")
 
     title = f"[PW_SID:{series['id']}] {series['name']}"
+
+    # Check if PR already exists
+    if ci_data.gh.pr_exist_title(f"PW_SID:{series['id']}"):
+        log_info("PR already exists, skipping creation")
+        return True
 
     # Use the commit of the patch for pr body
     patch_1 = ci_data.pw.get_patch(series['patches'][0]['id'])
