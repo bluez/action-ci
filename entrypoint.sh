@@ -173,7 +173,7 @@ case $TASK in
         ;;
     *)
         echo "Unknown TASK: $TASK"
-        eixt 1
+        exit 1
         ;;
 esac
 

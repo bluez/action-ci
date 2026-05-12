@@ -29,7 +29,7 @@ UPSTREAM_HEAD=$(git log -1 --format=%H upstream/$UPSTREAM_BRANCH)
 echo "UPSTREAM_HEAD: $UPSTREAM_HEAD"
 
 if [ "$ORIGIN_HEAD" = "$UPSTREAM_HEAD" ]; then
-    echo "Repos are already synched. Eixt..."
+    echo "Repos are already synched. Exit..."
     exit 0
 fi
 echo "Repos are NOT synced. Need to merge..."
