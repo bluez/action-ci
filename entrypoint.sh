@@ -40,9 +40,9 @@ function set_git_safe_dir {
         exit 1
     fi
 
-    echo "Add repo to safe.directory: $1"
-    echo "$ git config --global --add safe.directory $1"
-    git config --global --add safe.directory $1
+    echo "Add repo to safe.directory: \"$1\""
+    echo "$ git config --global --add safe.directory \"$1\""
+    git config --global --add safe.directory "$1"
 }
 
 # Setup GIT Remote URL with github token
@@ -59,20 +59,20 @@ function update_github_token {
 # Clone ELL
 function clone_ell {
     # remove if already exist
-    DEST_DIR=$1
-    rm -rf $DEST_DIR
-    git clone --depth=1 https://git.kernel.org/pub/scm/libs/ell/ell $DEST_DIR
-    cd $DEST_DIR
+    DEST_DIR="$1"
+    rm -rf "$DEST_DIR"
+    git clone --depth=1 https://git.kernel.org/pub/scm/libs/ell/ell "$DEST_DIR"
+    cd "$DEST_DIR"
     git log -1 --format='%H'
 }
 
 # Clone BlueZ
 function clone_bluez {
     # remove if already exist
-    DEST_DIR=$1
-    rm -rf $DEST_DIR
-    git clone --depth=1 https://git.kernel.org/pub/scm/bluetooth/bluez $DEST_DIR
-    cd $DEST_DIR
+    DEST_DIR="$1"
+    rm -rf "$DEST_DIR"
+    git clone --depth=1 https://git.kernel.org/pub/scm/bluetooth/bluez "$DEST_DIR"
+    cd "$DEST_DIR"
     git log -1 --format='%H'
 }
 
@@ -109,19 +109,19 @@ case $TASK in
         echo "Task: Sync Repo"
             # requires GITHUB_TOKEN
             check_github_token
-            set_git_safe_dir $GITHUB_WORKSPACE
+            set_git_safe_dir "$GITHUB_WORKSPACE"
             # calling sync_repo
             # param: upstream_repo
             # param: upstream_branch
             # param: origin_branch
             # param: workflow
-            /sync_repo.sh $UPSTREAM_REPO $UPSTREAM_BRANCH $ORIGIN_BRANCH $WORKFLOW
+            /sync_repo.sh "$UPSTREAM_REPO" "$UPSTREAM_BRANCH" "$ORIGIN_BRANCH" "$WORKFLOW"
         ;;
     cleanup|Cleanup|CLENAUP)
         echo "Task: Clean Up PR"
             # requires GITHUB_TOKEN
             check_github_token
-            /cleanup_pr.py $GITHUB_REPOSITORY
+            /cleanup_pr.py "$GITHUB_REPOSITORY"
         ;;
     patchwork|Patchwork|PATCHWORK)
         echo "Task: Sync Patchwork"
@@ -129,10 +129,10 @@ case $TASK in
             check_github_token
             check_email_token
             check_patchwork_token
-            set_git_safe_dir $GITHUB_WORKSPACE
-            update_github_token $GITHUB_REPOSITORY
+            set_git_safe_dir "$GITHUB_WORKSPACE"
+            update_github_token "$GITHUB_REPOSITORY"
             # calling sync_patchwork.py
-            /sync_patchwork.py -c /config.json -b $WORKFLOW -s $GITHUB_WORKSPACE $SPACE $GITHUB_REPOSITORY
+            /sync_patchwork.py -c /config.json -b "$WORKFLOW" -s "$GITHUB_WORKSPACE" "$SPACE" "$GITHUB_REPOSITORY"
         ;;
     ci|CI|Ci)
         echo "Task: CI"
@@ -146,26 +146,26 @@ case $TASK in
             echo "Target PR: $PR"
 
             # For CI, assume that source is cloned under src
-            set_git_safe_dir $GITHUB_WORKSPACE/$BASE_DIR/src
+            set_git_safe_dir "$GITHUB_WORKSPACE/$BASE_DIR/src"
 
-            clone_ell $GITHUB_WORKSPACE/$BASE_DIR/ell
-            set_git_safe_dir $GITHUB_WORKSPACE/$BASE_DIR/ell
+            clone_ell "$GITHUB_WORKSPACE/$BASE_DIR/ell"
+            set_git_safe_dir "$GITHUB_WORKSPACE/$BASE_DIR/ell"
 
-            mkdir $GITHUB_WORKSPACE/$BASE_DIR/patch
+            mkdir "$GITHUB_WORKSPACE/$BASE_DIR/patch"
 
-            if [ $SPACE == "kernel" ]; then
-                clone_bluez $GITHUB_WORKSPACE/$BASE_DIR/bluez
-                set_git_safe_dir $GITHUB_WORKSPACE/$BASE_DIR/bluez
-                /ci.py -c /config.json -z $GITHUB_WORKSPACE/$BASE_DIR/bluez    \
-                                       -e $GITHUB_WORKSPACE/$BASE_DIR/ell      \
-                                       -k $GITHUB_WORKSPACE/$BASE_DIR/src      \
-                                       -p $GITHUB_WORKSPACE/$BASE_DIR/patch    \
-                                       kernel $GITHUB_REPOSITORY $PR
-            elif [ $SPACE == "user" ]; then
-                /ci.py -c /config.json -z $GITHUB_WORKSPACE/$BASE_DIR/src      \
-                                       -e $GITHUB_WORKSPACE/$BASE_DIR/ell      \
-                                       -p $GITHUB_WORKSPACE/$BASE_DIR/patch    \
-                                       user $GITHUB_REPOSITORY $PR
+            if [ "$SPACE" == "kernel" ]; then
+                clone_bluez "$GITHUB_WORKSPACE/$BASE_DIR/bluez"
+                set_git_safe_dir "$GITHUB_WORKSPACE/$BASE_DIR/bluez"
+                /ci.py -c /config.json -z "$GITHUB_WORKSPACE/$BASE_DIR/bluez"  \
+                                       -e "$GITHUB_WORKSPACE/$BASE_DIR/ell"    \
+                                       -k "$GITHUB_WORKSPACE/$BASE_DIR/src"    \
+                                       -p "$GITHUB_WORKSPACE/$BASE_DIR/patch"  \
+                                       kernel "$GITHUB_REPOSITORY" "$PR"
+            elif [ "$SPACE" == "user" ]; then
+                /ci.py -c /config.json -z "$GITHUB_WORKSPACE/$BASE_DIR/src"    \
+                                       -e "$GITHUB_WORKSPACE/$BASE_DIR/ell"    \
+                                       -p "$GITHUB_WORKSPACE/$BASE_DIR/patch"  \
+                                       user "$GITHUB_REPOSITORY" "$PR"
             else
                 echo "Unknown SPACE: $SPACE"
                 exit 1
