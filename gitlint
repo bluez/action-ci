@@ -7,6 +7,7 @@
 # ignore-merge-commits=true
 # Enable debug mode (prints more output). Disabled by default.
 # debug=true
+regex-style-search=true
 
 # Set the extra-path where gitlint will search for user defined rules
 # See http://jorisroovers.github.io/gitlint/user_defined_rules for details
@@ -48,4 +49,4 @@ min-length=1
 # files=gitlint/rules.py,README.md
 #
 [ignore-body-lines]
-regex=^Fixes:
+regex=^(Fixes:|Link:|.*https?://)
