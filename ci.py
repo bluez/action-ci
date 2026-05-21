@@ -468,6 +468,13 @@ def create_test_list_kernel(ci_data):
     checkaptch_pl = os.path.join(ci_data.src_dir, 'scripts', 'checkpatch.pl')
     test_list.append(ci.CheckPatch(ci_data, checkpatch_pl=checkaptch_pl,
                      ignore=ci_config['CheckPatch']['ignore']))
+
+    # VerifyFixes
+    test_list.append(ci.VerifyFixes(ci_data))
+
+    # VerifySignedoff
+    test_list.append(ci.VerifySignedoff(ci_data))
+
     # GitLint
     test_list.append(ci.GitLint(ci_data))
 

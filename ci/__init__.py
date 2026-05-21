@@ -19,4 +19,6 @@ from .testrunnersetup import TestRunnerSetup
 from .checksparse import CheckSparse
 from .checkallwarning import CheckAllWarning
 from .checksmatch import CheckSmatch
+from .verifyfixes import VerifyFixes
+from .verifysignedoff import VerifySignedoff
 
