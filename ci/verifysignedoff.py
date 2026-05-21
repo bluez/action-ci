@@ -30,7 +30,9 @@ class VerifySignedoff(Base):
         self.log_dbg("Run")
         self.start_timer()
 
-        git_range = "origin/master..HEAD"
+        # Use HEAD^2 to skip GitHub's merge commit (refs/pull/N/merge)
+        # and only check the actual PR commits
+        git_range = "origin/master..HEAD^2"
 
         cmd = [self.script, git_range]
         (ret, stdout, stderr) = cmd_run(cmd, cwd=self.ci_data.src_dir)
