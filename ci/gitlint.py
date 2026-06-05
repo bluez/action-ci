@@ -11,11 +11,12 @@ class GitLint(Base):
     This class runs gitlint with the patches in the series
     """
 
-    def __init__(self, ci_data, gitlint_config=None):
+    def __init__(self, ci_data, gitlint_config=None, gitlint_rules=None):
 
         self.name = "GitLint"
         self.desc = "Run gitlint"
         self.ci_data = ci_data
+        self.gitlint_rules = gitlint_rules
 
         # Set the gitlint config file
         if gitlint_config:
@@ -66,6 +67,8 @@ class GitLint(Base):
                                          f"{patch['id']}.msg"))
         self.log_dbg(f"Patch msg: {patch_msg}")
         cmd = ['gitlint', '-C', self.gitlint_config, '--msg-filename', patch_msg]
+        if self.gitlint_rules:
+            cmd.extend(self.gitlint_rules)
         return cmd_run(cmd, cwd=self.ci_data.src_dir)
 
     def post_run(self):
