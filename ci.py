@@ -476,7 +476,7 @@ def create_test_list_kernel(ci_data):
     test_list.append(ci.VerifySignedoff(ci_data))
 
     # GitLint
-    test_list.append(ci.GitLint(ci_data))
+    test_list.append(ci.GitLint(ci_data), [ '--contrib', 'contrib-body-requires-signed-off-by' ])
 
     # SubjectPrefix
     test_list.append(ci.SubjectPrefix(ci_data))
