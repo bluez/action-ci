@@ -1,4 +1,4 @@
-FROM blueztestbot/bluez-build:latest
+FROM ghcr.io/pv/bluez-ci-image:latest
 
 COPY *.sh           /
 COPY *.py           /
