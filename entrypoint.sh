@@ -216,7 +216,8 @@ case $TASK in
                                        kernel "$GITHUB_REPOSITORY" "$PR"       \
                                        --dry-run -j auto
             elif [ "$SPACE" == "user" ]; then
-                /ci.py -c /config.json -z "$GITHUB_WORKSPACE/$BASE_DIR/src"    \
+                set_git_safe_dir $GITHUB_WORKSPACE/$BASE_DIR/bluez
+                /ci.py -c /config.json -z "$GITHUB_WORKSPACE/$BASE_DIR/bluez"  \
                                        -e "$GITHUB_WORKSPACE/$BASE_DIR/ell"    \
                                        -p "$GITHUB_WORKSPACE/$BASE_DIR/patch"  \
                                        user "$GITHUB_REPOSITORY" "$PR"	       \
