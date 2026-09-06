@@ -261,6 +261,9 @@ def create_test_list_user(ci_data):
     # Make with External ELL
     test_list.append(ci.MakeExtEll(ci_data))
 
+    # TestFunctional
+    test_list.append(ci.TestFunctional(ci_data))
+
     # Incremental Build
     test_list.append(ci.IncrementalBuild(ci_data, "user"))
 
