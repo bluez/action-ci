@@ -385,6 +385,11 @@ def manage_pr(gh):
     prs = gh.get_prs(force=True)
     log_info(f"Pull Request count: {prs.totalCount}")
 
+    # Closing a PR removes it from the list of the open PRs, which shifts
+    # the pagination and makes the iteration skip the entries. Read the
+    # whole list before touching any of them.
+    prs = list(prs)
+
     # Handle each PR
     for pr in prs:
         log_debug(f"Check PR#_{pr.number}")
