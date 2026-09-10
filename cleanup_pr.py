@@ -93,6 +93,11 @@ This is an automated message and please do not change or delete.
 
 Closing without taking any action.
 
+If you still want this change to be considered, it must be resent as a
+patch to the Linux Bluetooth mailing list
+(linux-bluetooth@vger.kernel.org). Closing this pull request doesn't
+submit anything on your behalf.
+
 Best regards,
 BlueZ Team
 '''
@@ -113,6 +118,11 @@ Github repository and it was closed automatically without taking any action.
 Note that the BlueZ repo in Github is only for CI and testing purposes and
 it doesn't accept any pull request. The patches should be sent to the Linux
 Bluetooth mailing list (linux-bluetooth@vger.kernel.org) for review.
+
+If the change should still be considered, it must be resent as a patch to
+the Linux Bluetooth mailing list (linux-bluetooth@vger.kernel.org). Closing
+the pull request doesn't submit anything on the submitter's behalf and no
+further action is taken on it.
 
 ---
 Regards,
