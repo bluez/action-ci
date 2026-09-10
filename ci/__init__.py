@@ -22,3 +22,4 @@ from .checksmatch import CheckSmatch
 from .verifyfixes import VerifyFixes
 from .verifysignedoff import VerifySignedoff
 from .checkkernelllvm import CheckKernelLLVM
+from .testfunctional import TestFunctional

@@ -261,6 +261,9 @@ def create_test_list_user(ci_data):
     # Make with External ELL
     test_list.append(ci.MakeExtEll(ci_data))
 
+    # TestFunctional
+    test_list.append(ci.TestFunctional(ci_data))
+
     # Incremental Build
     test_list.append(ci.IncrementalBuild(ci_data, "user"))
 
@@ -572,7 +575,9 @@ def run_ci(ci_data):
         except ci.EndTest as e:
             log_error(f"Test Ended(Failure): {test.name}:{test.verdict.name}")
         except Exception as e:
-            log_error(f"Test Ended(Exception): {test.name}: {e.__class__}")
+            import traceback
+            err = traceback.format_exc()
+            log_error(f"Test Ended(Exception): {test.name}: {e.__class__}\n{err}")
         finally:
             test.post_run()
 
