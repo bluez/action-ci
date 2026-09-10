@@ -301,7 +301,7 @@ def series_check_patches(ci_data, series):
     title = f"[PW_SID:{series['id']}] {series['name']}"
 
     # Check if PR already exists
-    if ci_data.gh.pr_exist_title(f"PW_SID:{series['id']}"):
+    if ci_data.gh.pr_exist_sid(series['id']):
         log_info("PR already exists, skipping creation")
         return True
 
@@ -340,8 +340,10 @@ def run_series(ci_data, new_series):
             log_info(f"Series is NOT for this repo")
             continue
 
-        # Check if PR already exist
-        if ci_data.gh.pr_exist_title(f"PW_SID:{series['id']}"):
+        # Check if PR already exist. The closed PRs count as well: the
+        # series was already handled and it must not be tested again,
+        # a resent series comes with a new series id.
+        if ci_data.gh.pr_exist_sid(series['id']):
             log_info("PR exists already")
             continue
 

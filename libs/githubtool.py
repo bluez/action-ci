@@ -7,7 +7,8 @@ from libs.utils import log_debug, log_error, log_info
 class GithubTool:
 
     def __init__(self, repo, token=None, checks_token=None):
-        self._repo = Github(token).get_repo(repo)
+        self._gh = Github(token)
+        self._repo = self._gh.get_repo(repo)
         self._pr = None
         self._prs = None
 
@@ -49,13 +50,43 @@ class GithubTool:
         git_ref = self._repo.get_git_ref(f"heads/{pr.head.ref}")
         git_ref.delete()
 
-    def pr_exist_title(self, str):
+    def pr_exist_sid(self, sid, include_closed=True):
+        """Check if a PR was already created for the patchwork series.
+
+        The series id is matched exactly, so a resent series, which always
+        gets a new series id from patchwork, is not confused with the one
+        it replaces.
+
+        The closed PRs are looked up as well: a PR closed for being stale
+        means the series was already handled and it must not be created
+        again, otherwise it is recreated and tested over and over.
+        """
+        pattern = re.compile(rf"\[PW_SID:{sid}\]", re.IGNORECASE)
+
         if not self._prs:
             self._prs = self.get_prs(force=True)
 
         for pr in self._prs:
-            if re.search(str, pr.title, re.IGNORECASE):
+            if pattern.search(pr.title):
+                log_debug(f"Found open PR for PW_SID:{sid}: #{pr.number}")
                 return True
+
+        if not include_closed:
+            return False
+
+        # Searching is used instead of walking through every closed PR of
+        # the repository, which would be thousands of them.
+        query = f"repo:{self._repo.full_name} is:pr in:title \"PW_SID:{sid}\""
+        try:
+            for issue in self._gh.search_issues(query):
+                if pattern.search(issue.title):
+                    log_debug(f"Found closed PR for PW_SID:{sid}: "
+                              f"#{issue.number}")
+                    return True
+        except GithubException as e:
+            # Don't create a duplicate PR just because the search failed
+            log_error(f"Failed to search the PR for PW_SID:{sid}: {e}")
+            return True
 
         return False
 
