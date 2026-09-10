@@ -6,6 +6,7 @@ import json
 import re
 import argparse
 import tempfile
+import traceback
 
 from github import Github
 
@@ -319,6 +320,8 @@ def run_series(ci_data, new_series):
 
     space_details = ci_data.config['space_details'][ci_data.config['space']]
 
+    failed = 0
+
     # Process the series
     for series in new_series:
         log_info(f"\n### Process Series: {series['id']} ###")
@@ -342,10 +345,19 @@ def run_series(ci_data, new_series):
             log_info("PR exists already")
             continue
 
-        # This series is ready to create PR
-        series_check_patches(ci_data, series)
+        # This series is ready to create PR.
+        # A failure here is specific to this series: log it and carry on
+        # with the rest instead of aborting the whole run.
+        try:
+            series_check_patches(ci_data, series)
+        except Exception:
+            failed += 1
+            log_error(f"Failed to process the series {series['id']}")
+            log_error(traceback.format_exc())
 
     log_debug("##### processing Series Done #####")
+
+    return failed
 
 def sid_in_series_list(sid, series_list):
 
@@ -363,7 +375,11 @@ def cleanup_pullrequest(ci_data, new_series):
 
     log_debug("##### Clean Up Pull Request #####")
 
-    prs = ci_data.gh.get_prs(force=True)
+    failed = 0
+
+    # Closing a PR removes it from the list of the open PRs and shifts the
+    # pagination, so read the whole list before closing any of them.
+    prs = list(ci_data.gh.get_prs(force=True))
     log_debug(f"Current PR: {prs}")
     for pr in prs:
         log_debug(f"PR: {pr}")
@@ -380,9 +396,16 @@ def cleanup_pullrequest(ci_data, new_series):
 
         log_debug(f"PW_SID:{pw_sid} not found in PR list. Close PR")
 
-        ci_data.gh.close_pr(pr.number)
+        try:
+            ci_data.gh.close_pr(pr.number)
+        except Exception:
+            failed += 1
+            log_error(f"Failed to close the PR {pr.number}")
+            log_error(traceback.format_exc())
 
     log_debug("##### Clean Up Pull Request Done #####")
+
+    return failed
 
 def check_args(args):
 
@@ -452,12 +475,18 @@ def main():
         return
 
     # Process Series
-    run_series(ci_data, new_series)
+    failed = run_series(ci_data, new_series)
 
     # Cleanup PR
-    cleanup_pullrequest(ci_data, new_series)
+    failed += cleanup_pullrequest(ci_data, new_series)
 
     log_debug("----- DONE -----")
+
+    # Everything was processed, but report the failures so the run is not
+    # silently green.
+    if failed:
+        log_error(f"{failed} item(s) failed to process")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

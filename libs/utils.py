@@ -46,7 +46,9 @@ def pr_get_sid(pr_title):
     try:
         sid = re.search(r'^\[PW_SID:([0-9]+)\]', pr_title).group(1)
     except AttributeError:
-        log_error(f"Unable to find the series_id from title {pr_title}")
+        # Not every PR is created from a patchwork series, so this is an
+        # expected case and not an error.
+        log_debug(f"Unable to find the series_id from title {pr_title}")
         sid = None
 
     return sid

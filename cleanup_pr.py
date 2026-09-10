@@ -5,6 +5,7 @@ import sys
 import json
 import logging
 import argparse
+import traceback
 
 from datetime import datetime, timezone
 from github import Github
@@ -390,6 +391,8 @@ def manage_pr(gh):
     # whole list before touching any of them.
     prs = list(prs)
 
+    failed = 0
+
     # Handle each PR
     for pr in prs:
         log_debug(f"Check PR#_{pr.number}")
@@ -414,8 +417,18 @@ def manage_pr(gh):
         # series, so there is no need to look them up.
         magic_line = None if pw_sid else get_latest_comment(gh, pr)
 
-        # Update the PR
-        update_pull_request(gh, pr, days_created, magic_line, pw_sid)
+        # Update the PR. A failure is specific to this PR, so log it and
+        # keep going with the rest.
+        try:
+            update_pull_request(gh, pr, days_created, magic_line, pw_sid)
+        except Exception:
+            failed += 1
+            log_error(f"Failed to update the PR {pr.number}")
+            log_error(traceback.format_exc())
+
+    if failed:
+        log_error(f"{failed} PR(s) failed to process")
+        sys.exit(1)
 
 def parse_args():
     """ Parse input argument """
