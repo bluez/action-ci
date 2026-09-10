@@ -37,7 +37,8 @@ class GithubTool:
 
     def create_pr(self, title, body, base, head):
 
-        return self._repo.create_pull(title, body, base, head, True)
+        return self._repo.create_pull(title=title, body=body, base=base, 
+                                      head=head, maintainer_can_modify=True)
 
     def close_pr(self, pr_id):
         pr = self.get_pr(pr_id, force=True)
