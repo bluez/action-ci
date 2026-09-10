@@ -37,7 +37,10 @@ class GithubTool:
 
     def create_pr(self, title, body, base, head):
 
-        return self._repo.create_pull(title, body, base, head, True)
+        # Only 'base' and 'head' are positional in the current PyGithub, the
+        # rest of the arguments have to be passed by keyword.
+        return self._repo.create_pull(base, head, title=title, body=body,
+                                      maintainer_can_modify=True)
 
     def close_pr(self, pr_id):
         pr = self.get_pr(pr_id, force=True)
