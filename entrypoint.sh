@@ -123,7 +123,7 @@ case $TASK in
         echo "Task: Clean Up PR"
             # requires GITHUB_TOKEN
             check_github_token
-            /cleanup_pr.py "$GITHUB_REPOSITORY"
+            /cleanup_pr.py -c /config.json "$GITHUB_REPOSITORY"
         ;;
     patchwork|Patchwork|PATCHWORK)
         echo "Task: Sync Patchwork"

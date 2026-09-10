@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import json
 import logging
 import argparse
 
@@ -9,9 +10,11 @@ from datetime import datetime, timezone
 from github import Github
 
 from libs import init_logger, log_debug, log_error, log_info, pr_get_sid
-from libs import GithubTool
+from libs import GithubTool, EmailTool
 
 dry_run = False
+email_config = None
+email_token = None
 
 MAGIC_LINE = "BlueZ Testbot Message:"
 MAGIC_LINE_2 = "BlueZ Testbot Message #2:"
@@ -93,6 +96,84 @@ Closing without taking any action.
 Best regards,
 BlueZ Team
 '''
+
+ARCHIVE_EMAIL_SUBJECT = "[BlueZ] Pull Request #{number} was closed: {title}"
+
+ARCHIVE_EMAIL_MESSAGE = '''This is an automated email and please do not reply to this email.
+
+The following pull request was open for more than 2 weeks in the BlueZ
+Github repository and it was closed automatically without taking any action.
+
+   Pull Request: #{number}
+   Title:        {title}
+   Submitter:    {submitter}
+   Created:      {created_at}
+   URL:          {url}
+
+Note that the BlueZ repo in Github is only for CI and testing purposes and
+it doesn't accept any pull request. The patches should be sent to the Linux
+Bluetooth mailing list (linux-bluetooth@vger.kernel.org) for review.
+
+---
+Regards,
+Linux Bluetooth
+'''
+
+def get_archive_receivers():
+    """
+    Get the list of receivers for the archive notification.
+    """
+    receivers = []
+
+    if email_config.get('only-maintainers', False):
+        receivers.extend(email_config.get('maintainers', []))
+    elif 'default-to' in email_config:
+        receivers.append(email_config['default-to'])
+
+    # Remove the duplicated entries but keep the order
+    return list(dict.fromkeys(receivers))
+
+def send_archive_email(pr):
+    """
+    Send an email notification when the PR is archived(closed)
+    """
+    if not email_config:
+        log_debug("No email configuration. Skip sending email")
+        return
+
+    receivers = get_archive_receivers()
+    if not receivers:
+        log_error("No email receiver found. Skip sending email")
+        return
+
+    submitter = pr.user.login if pr.user else "Unknown"
+    subject = ARCHIVE_EMAIL_SUBJECT.format(number=pr.number, title=pr.title)
+    body = ARCHIVE_EMAIL_MESSAGE.format(number=pr.number,
+                                        title=pr.title,
+                                        submitter=submitter,
+                                        created_at=pr.created_at,
+                                        url=pr.html_url)
+
+    headers = {}
+    if 'default-to' in email_config:
+        headers['Reply-To'] = email_config['default-to']
+
+    # Use a new EmailTool instance for each email to avoid reusing the
+    # same message object.
+    email = EmailTool(token=email_token, config=email_config)
+    email.set_receivers(receivers)
+    email.compose(subject, body, headers)
+
+    if dry_run:
+        log_info("Dry-Run: Skip sending email")
+        return
+
+    if not email_token:
+        log_info("No EMAIL_TOKEN found. Skip sending email")
+        return
+
+    log_info(f"Sending archive notification email for PR#{pr.number}")
+    email.send()
 
 def get_comment_str(magic_line):
     """
@@ -197,6 +278,7 @@ def update_pull_request(gh, pr, days_created, magic_line):
         log_debug("PR is more than 2 weeks and close the PR")
         pr_add_comment(gh, pr, MAGIC_LINE_4)
         pr_close(gh, pr)
+        send_archive_email(pr)
 
 def manage_pr(gh):
 
@@ -236,6 +318,8 @@ def parse_args():
     ap = argparse.ArgumentParser(description="Clean up PR")
     ap.add_argument('-d', '--dry-run', action='store_true', default=False,
                     help='Run it without updating the PR')
+    ap.add_argument('-c', '--config', default=None,
+                    help='Configuration file with the email settings')
     # Positional parameter
     ap.add_argument("repo",
                     help="Name of Github repository. i.e. bluez/bluez")
@@ -244,6 +328,8 @@ def parse_args():
 def main():
 
     global dry_run
+    global email_config
+    global email_token
 
     init_logger("ManagePR", verbose=True)
 
@@ -253,6 +339,23 @@ def main():
     if 'GITHUB_TOKEN' not in os.environ:
         log_error("Set GITHUB_TOKEN environment variable")
         sys.exit(1)
+
+    # Load the email configuration if it is available. The email
+    # notification is optional and it is skipped when the configuration
+    # or the token is missing.
+    if args.config:
+        config_file = os.path.abspath(args.config)
+        if not os.path.exists(config_file):
+            log_error(f"Invalid parameter(config) {args.config}")
+            sys.exit(1)
+        with open(config_file, 'r') as f:
+            email_config = json.load(f).get('email', None)
+        if not email_config:
+            log_error("No email section in the configuration file")
+
+    email_token = os.environ.get('EMAIL_TOKEN', None)
+    if not email_token:
+        log_info("No EMAIL_TOKEN found. Email notification is disabled")
 
     # Initialize github repo object
     try:

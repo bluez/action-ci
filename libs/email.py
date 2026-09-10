@@ -28,6 +28,7 @@ class EmailTool:
                 self._startls = config['startls']
 
     def send(self):
+        session = None
         try:
             session = smtplib.SMTP(self._server, self._port)
             session.ehlo()
@@ -39,8 +40,10 @@ class EmailTool:
         except Exception as e:
             libs.log_error("Failed to Send email")
             libs.log_error(e)
+            return
         finally:
-            session.quit()
+            if session:
+                session.quit()
 
         libs.log_info("Email sent successfully")
 
