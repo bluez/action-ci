@@ -1,4 +1,3 @@
-from asyncio import SendfileNotAvailableError
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -43,7 +42,11 @@ class EmailTool:
             return
         finally:
             if session:
-                session.quit()
+                try:
+                    session.quit()
+                except smtplib.SMTPException:
+                    # The server may have dropped the connection already
+                    pass
 
         libs.log_info("Email sent successfully")
 
@@ -60,6 +63,14 @@ class EmailTool:
             self._message.add_header(key, value)
 
     def compose(self, title, body, headers):
+        # Always start from a new message. The same EmailTool instance is
+        # reused for several emails and adding the headers to the previous
+        # message ends up with duplicated From/To/Subject headers, which is
+        # rejected by the server:
+        #   550 5.7.1 This message is not RFC 5322 compliant. There are
+        #   multiple To headers.
+        self._message = MIMEMultipart()
+
         self._message['From'] = self._sender
         self._message['To'] = ", ".join(self._receivers)
         self._message['Subject'] = title
