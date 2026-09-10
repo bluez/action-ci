@@ -5,7 +5,7 @@ import sys
 import logging
 import argparse
 
-from datetime import datetime
+from datetime import datetime, timezone
 from github import Github
 
 from libs import init_logger, log_debug, log_error, log_info, pr_get_sid
@@ -215,7 +215,12 @@ def manage_pr(gh):
             continue
 
         # Calculate the number of days since PR was created
-        delta = datetime.now() - pr.created_at
+        # PyGithub returns timezone-aware datetimes (UTC), but older
+        # versions returned naive ones. Normalize before subtracting.
+        created_at = pr.created_at
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        delta = datetime.now(timezone.utc) - created_at
         days_created = delta.days
 
         log_debug(f"PR opened {days_created} days ago")
