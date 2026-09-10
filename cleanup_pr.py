@@ -10,11 +10,12 @@ from datetime import datetime, timezone
 from github import Github
 
 from libs import init_logger, log_debug, log_error, log_info, pr_get_sid
-from libs import GithubTool, EmailTool
+from libs import GithubTool, EmailTool, Patchwork
 
 dry_run = False
 email_config = None
 email_token = None
+pw = None
 
 MAGIC_LINE = "BlueZ Testbot Message:"
 MAGIC_LINE_2 = "BlueZ Testbot Message #2:"
@@ -129,7 +130,31 @@ Regards,
 Linux Bluetooth
 '''
 
-def get_archive_receivers():
+ARCHIVE_SERIES_EMAIL_MESSAGE = '''This is an automated email and please do not reply to this email.
+
+Dear Submitter,
+
+This series was picked up by the CI more than 2 weeks ago and the pull
+request created for it is still open, which means the series was never
+applied to the tree.
+
+   Series:       {title}
+   Pull Request: {url}
+   Created:      {created_at}
+
+The pull request has been closed and no further action is taken on this
+series.
+
+If the change should still be considered, it must be resent to the Linux
+Bluetooth mailing list (linux-bluetooth@vger.kernel.org) so that it is
+picked up again.
+
+---
+Regards,
+Linux Bluetooth
+'''
+
+def get_archive_receivers(submitter=None):
     """
     Get the list of receivers for the archive notification.
     """
@@ -137,13 +162,71 @@ def get_archive_receivers():
 
     if email_config.get('only-maintainers', False):
         receivers.extend(email_config.get('maintainers', []))
-    elif 'default-to' in email_config:
-        receivers.append(email_config['default-to'])
+    else:
+        if 'default-to' in email_config:
+            receivers.append(email_config['default-to'])
+        if submitter:
+            receivers.append(submitter)
 
     # Remove the duplicated entries but keep the order
     return list(dict.fromkeys(receivers))
 
-def send_archive_email(pr):
+def get_series(pw_sid):
+    """
+    Get the patchwork series for the given series id. Returns None if the
+    series cannot be retrieved.
+    """
+    if not pw or not pw_sid:
+        return None
+
+    try:
+        series = pw.get_series(pw_sid)
+    except Exception as e:
+        log_error(f"Failed to get the series {pw_sid} from patchwork: {e}")
+        return None
+
+    if not series or not series.get('patches', None):
+        log_error(f"No patch found in the series {pw_sid}")
+        return None
+
+    return series
+
+def compose_archive_email(pr, series):
+    """
+    Compose the archive notification email. If the PR was created from a
+    patchwork series, the email is sent as a reply to the first patch of
+    the series so that it lands in the original thread.
+    """
+    headers = {}
+
+    if series:
+        patch_1 = series['patches'][0]
+        # Reply to the original submission instead of starting a new thread
+        headers['In-Reply-To'] = patch_1['msgid']
+        headers['References'] = patch_1['msgid']
+
+        subject = f"RE: {series['name']}"
+        body = ARCHIVE_SERIES_EMAIL_MESSAGE.format(title=series['name'],
+                                                   url=pr.html_url,
+                                                   created_at=pr.created_at)
+        submitter = series['submitter']['email']
+    else:
+        subject = ARCHIVE_EMAIL_SUBJECT.format(number=pr.number,
+                                               title=pr.title)
+        body = ARCHIVE_EMAIL_MESSAGE.format(
+                            number=pr.number,
+                            title=pr.title,
+                            submitter=pr.user.login if pr.user else "Unknown",
+                            created_at=pr.created_at,
+                            url=pr.html_url)
+        submitter = None
+
+    if 'default-to' in email_config:
+        headers['Reply-To'] = email_config['default-to']
+
+    return subject, body, headers, submitter
+
+def send_archive_email(pr, series=None):
     """
     Send an email notification when the PR is archived(closed)
     """
@@ -151,22 +234,12 @@ def send_archive_email(pr):
         log_debug("No email configuration. Skip sending email")
         return
 
-    receivers = get_archive_receivers()
+    subject, body, headers, submitter = compose_archive_email(pr, series)
+
+    receivers = get_archive_receivers(submitter)
     if not receivers:
         log_error("No email receiver found. Skip sending email")
         return
-
-    submitter = pr.user.login if pr.user else "Unknown"
-    subject = ARCHIVE_EMAIL_SUBJECT.format(number=pr.number, title=pr.title)
-    body = ARCHIVE_EMAIL_MESSAGE.format(number=pr.number,
-                                        title=pr.title,
-                                        submitter=submitter,
-                                        created_at=pr.created_at,
-                                        url=pr.html_url)
-
-    headers = {}
-    if 'default-to' in email_config:
-        headers['Reply-To'] = email_config['default-to']
 
     # Use a new EmailTool instance for each email to avoid reusing the
     # same message object.
@@ -257,11 +330,28 @@ def get_latest_comment(gh, pr):
     log_debug("No bluez comment found")
     return None
 
-def update_pull_request(gh, pr, days_created, magic_line):
+def update_pull_request(gh, pr, days_created, magic_line, pw_sid=None):
     """
     Update the pull request based on the days passed since it was created
     and the latest comment line
     """
+
+    # The PRs created from a patchwork series are created by the CI itself,
+    # so there is no point in asking the submitter to send the patches to
+    # the mailing list. Only close them once they get too old.
+    if pw_sid:
+        if days_created > 14:
+            log_debug("PR from patchwork series is more than 2 weeks. Closing")
+            series = get_series(pw_sid)
+            pr_close(gh, pr)
+            if series:
+                send_archive_email(pr, series)
+            else:
+                # Without the series there is no message to reply to and
+                # the generic notification doesn't apply to a PR created
+                # by the CI itself.
+                log_error(f"No series for SID {pw_sid}. Skip sending email")
+        return
 
     if days_created < 7:
         log_debug("Days created < 7")
@@ -299,12 +389,10 @@ def manage_pr(gh):
     for pr in prs:
         log_debug(f"Check PR#_{pr.number}")
 
-        # Check if this PR is created with Patchwork series.
-        # If yes, stop processing.
+        # Check if this PR is created from a Patchwork series.
         pw_sid = pr_get_sid(pr.title)
         if pw_sid:
             log_info(f"PR is created with Patchwork SID: {pw_sid}")
-            continue
 
         # Calculate the number of days since PR was created
         # PyGithub returns timezone-aware datetimes (UTC), but older
@@ -317,10 +405,12 @@ def manage_pr(gh):
 
         log_debug(f"PR opened {days_created} days ago")
 
-        magic_line = get_latest_comment(gh, pr)
+        # No bot comment is posted to the PRs created from a patchwork
+        # series, so there is no need to look them up.
+        magic_line = None if pw_sid else get_latest_comment(gh, pr)
 
         # Update the PR
-        update_pull_request(gh, pr, days_created, magic_line)
+        update_pull_request(gh, pr, days_created, magic_line, pw_sid)
 
 def parse_args():
     """ Parse input argument """
@@ -340,6 +430,7 @@ def main():
     global dry_run
     global email_config
     global email_token
+    global pw
 
     init_logger("ManagePR", verbose=True)
 
@@ -350,18 +441,29 @@ def main():
         log_error("Set GITHUB_TOKEN environment variable")
         sys.exit(1)
 
-    # Load the email configuration if it is available. The email
-    # notification is optional and it is skipped when the configuration
-    # or the token is missing.
+    # Load the email and the patchwork configuration if it is available.
+    # The email notification is optional and it is skipped when the
+    # configuration or the token is missing.
     if args.config:
         config_file = os.path.abspath(args.config)
         if not os.path.exists(config_file):
             log_error(f"Invalid parameter(config) {args.config}")
             sys.exit(1)
         with open(config_file, 'r') as f:
-            email_config = json.load(f).get('email', None)
+            config = json.load(f)
+
+        email_config = config.get('email', None)
         if not email_config:
             log_error("No email section in the configuration file")
+
+        pw_config = config.get('patchwork', None)
+        if pw_config:
+            try:
+                pw = Patchwork(pw_config['url'], pw_config['project_name'])
+            except Exception as e:
+                log_error(f"Failed to initialize Patchwork class: {e}")
+        else:
+            log_error("No patchwork section in the configuration file")
 
     email_token = os.environ.get('EMAIL_TOKEN', None)
     if not email_token:
