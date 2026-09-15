@@ -94,6 +94,10 @@ class Patchwork():
         return items
 
     def post_check(self, patch, context, state, desc, url=None):
+        if self._token == "TEST_TOKEN":
+            libs.log_error(f"PW POST skipped: TEST_TOKEN set")
+            return
+
         headers = {}
         if self._token:
             headers['Authorization'] = f'Token {self._token}'
