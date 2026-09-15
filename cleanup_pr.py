@@ -255,6 +255,9 @@ def send_archive_email(pr, series=None):
     if not email_token:
         log_info("No EMAIL_TOKEN found. Skip sending email")
         return
+    elif email_token == "TEST_TOKEN":
+        log_info("EMAIL_TOKEN is TEST_TOKEN. Skip sending email")
+        return
 
     log_info(f"Sending archive notification email for PR#{pr.number}")
     email.send()

@@ -27,6 +27,10 @@ class EmailTool:
                 self._startls = config['startls']
 
     def send(self):
+        if self._token == "TEST_TOKEN":
+            libs.log_error("Email token is TEST_TOKEN, skip sending.")
+            return
+
         session = None
         try:
             session = smtplib.SMTP(self._server, self._port)
