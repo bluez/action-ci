@@ -56,19 +56,82 @@ inputs:
     description: Patchwork username
     default: ''
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
-  env:
-    ACTION_TOKEN: ${{ inputs.github_token }}
-    GITHUB_CHECKS_TOKEN: ${{ inputs.github_checks_token }}
-    EMAIL_TOKEN: ${{ inputs.email_token }}
-    PATCHWORK_TOKEN: ${{ inputs.patchwork_token }}
-    PATCHWORK_USER: ${{ inputs.patchwork_user }}
-  args:
-    - ${{ inputs.task }}
-    - ${{ inputs.base_folder }}
-    - ${{ inputs.upstream_repo }}
-    - ${{ inputs.upstream_branch }}
-    - ${{ inputs.origin_branch }}
-    - ${{ inputs.workflow }}
-    - ${{ inputs.space }}
+  using: 'composite'
+  steps:
+    - name: Enable KVM access
+      shell: bash
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+          | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+        stat /dev/kvm
+
+        if test -c /dev/kvm && test -r /dev/kvm && test -w /dev/kvm; then
+          echo "KVM is available"
+        else
+          echo "KVM not accessible"
+          exit 1
+        fi
+
+    - name: Build Docker image
+      shell: bash
+      env:
+        ACTION_IMAGE: bzcafe:${{ github.run_id }}-${{ github.run_attempt }}
+      run: |
+        set -euo pipefail
+
+        docker build \
+          --tag "${ACTION_IMAGE}" \
+          "${{ github.action_path }}"
+
+    - name: Run Docker image with KVM
+      shell: bash
+      env:
+        ACTION_IMAGE: bzcafe:${{ github.run_id }}-${{ github.run_attempt }}
+        ACTION_TOKEN: ${{ inputs.github_token }}
+        GITHUB_CHECKS_TOKEN: ${{ inputs.github_checks_token }}
+        EMAIL_TOKEN: ${{ inputs.email_token }}
+        PATCHWORK_TOKEN: ${{ inputs.patchwork_token }}
+        PATCHWORK_USER: ${{ inputs.patchwork_user }}
+      run: |
+        set -euo pipefail
+
+        docker run --rm \
+          --device=/dev/kvm:/dev/kvm \
+          --volume="${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
+          --workdir="${GITHUB_WORKSPACE}" \
+          --env ACTION_TOKEN \
+          --env EMAIL_TOKEN \
+          --env GITHUB_ACTION \
+          --env GITHUB_ACTIONS \
+          --env GITHUB_ACTOR \
+          --env GITHUB_API_URL \
+          --env GITHUB_BASE_REF \
+          --env GITHUB_CHECKS_TOKEN \
+          --env GITHUB_EVENT_NAME \
+          --env GITHUB_EVENT_PATH \
+          --env GITHUB_HEAD_REF \
+          --env GITHUB_JOB \
+          --env GITHUB_REF \
+          --env GITHUB_REF_NAME \
+          --env GITHUB_REPOSITORY \
+          --env GITHUB_RUN_ATTEMPT \
+          --env GITHUB_RUN_ID \
+          --env GITHUB_RUN_NUMBER \
+          --env GITHUB_SERVER_URL \
+          --env GITHUB_SHA \
+          --env GITHUB_WORKFLOW \
+          --env GITHUB_WORKSPACE \
+          --env PATCHWORK_TOKEN \
+          --env PATCHWORK_USER \
+          "${ACTION_IMAGE}" \
+          ${{ inputs.task }} \
+          ${{ inputs.base_folder }} \
+          ${{ inputs.upstream_repo }} \
+          ${{ inputs.upstream_branch }} \
+          ${{ inputs.origin_branch }} \
+          ${{ inputs.workflow }} \
+          ${{ inputs.space }}
